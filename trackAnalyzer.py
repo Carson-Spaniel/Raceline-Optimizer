@@ -1,44 +1,4 @@
 from PIL import Image
-
-def is_black(pixel, threshold=100):
-    # Assuming pixel is in RGB format
-    # Calculate luminance as a measure of intensity (brightness)
-    luminance = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
-    # Check if luminance is below the threshold
-    return luminance <= threshold
-
-def process_image(image_path, output_file, target_size=(100, 100)):
-    # Open the image file
-    img = Image.open(image_path)
-
-    # Resize the image to the specified target size
-    img = img.resize(target_size, resample=Image.BOX)
-
-    # Get the size of the resized image
-    width, height = img.size
-
-    # Create a new file for storing the results
-    with open(output_file, 'w') as f:
-        # Iterate through each pixel
-        for y in range(height):
-            for x in range(width):
-                pixel = img.getpixel((x, y))
-
-                # Check if the pixel is considered black
-                if is_black(pixel):
-                    f.write('1')
-                else:
-                    f.write('0')
-
-            # Add a newline after each row
-            f.write('\n')
-
-# Example usage with a specified target size
-image_path = 'tracks/monza.jpg'
-output_file = 'output.txt'
-target_size = (50, 50)
-process_image(image_path, output_file, target_size)
-
 import heapq
 
 class Graph:
@@ -46,15 +6,14 @@ class Graph:
         self.rows = rows
         self.cols = cols
         self.graph = {}
-        self.create_graph()
 
-    def create_graph(self):
+    def create_graph(self, grid):
         for i in range(self.rows):
             for j in range(self.cols):
                 if grid[i][j] == 1:
-                    self.add_node((i, j))
+                    self.add_node((i, j), grid)
 
-    def add_node(self, node):
+    def add_node(self, node, grid):
         i, j = node
         neighbors = []
 
@@ -77,6 +36,9 @@ class Graph:
             if current_distance > distances[current_node]:
                 continue
 
+            if current_node not in self.graph:
+                continue  # Skip if the node is not present in the graph
+
             for neighbor in self.graph[current_node]:
                 distance = current_distance + 1  # Assuming all edges have weight 1
                 if distance < distances[neighbor]:
@@ -89,60 +51,138 @@ class Graph:
         shortest_path = {}
         for node in self.graph:
             distances = self.dijkstra(node)
-            shortest_path[node] = min(distances.values())
+            if distances:  # Check if distances dictionary is not empty
+                shortest_path[node] = min(distances.values())
 
-        return min(shortest_path, key=shortest_path.get)
+        if shortest_path:  # Check if shortest_path dictionary is not empty
+            return min(shortest_path, key=shortest_path.get)
+        else:
+            return ()  # Return an empty tuple if no nodes have valid distances
 
-    def update_grid_with_path(self, path):
+    def update_grid_with_path(self, path, grid):
+        nodes = 0
         for node in self.graph:
             grid[node[0]][node[1]] = 0
 
         for node in path:
             grid[node[0]][node[1]] = 1
+            nodes += 1
+        return nodes
 
     def print_graph(self):
         for node, neighbors in self.graph.items():
             print(f"{node} -> {neighbors}")
 
-# Read the grid from a text file
-with open('output.txt', 'r') as file:
-    lines = file.readlines()
+def is_black(pixel, threshold=100):
+    # Assuming pixel is in RGB format
+    # Calculate luminance as a measure of intensity (brightness)
+    luminance = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
+    # Check if luminance is below the threshold
+    return luminance <= threshold
 
-# Convert the lines to a 2D list of integers
-grid = [[int(char) for char in line.strip()] for line in lines]
+def process_image(image_path, output_file, initial_target_size=(100, 100)):
+    graphs = []
+    while initial_target_size[0] > 1 and initial_target_size[1] > 1:
+        # Open the image file
+        img = Image.open(image_path)
 
-def filter_grid(grid):
-    filtered_grid = [row[:] for row in grid]  # Create a copy of the original grid
+        # Resize the image to the specified target size
+        img = img.resize(initial_target_size, resample=Image.BOX)
 
-    for i in range(len(grid)):
-        for j in range(len(grid[i])):
-            if grid[i][j] == 1:
-                count_neighbors = sum(grid[x][y] == 0 for x in range(i-1, i+2) for y in range(j-1, j+2) if 0 <= x < len(grid) and 0 <= y < len(grid[i]))
-                if count_neighbors >= 5:
-                    filtered_grid[i][j] = 0
+        # Get the size of the resized image
+        width, height = img.size
 
-    return filtered_grid
+        # Create a new file for storing the results
+        with open(output_file, 'w') as f:
+            # Iterate through each pixel
+            for y in range(height):
+                for x in range(width):
+                    pixel = img.getpixel((x, y))
 
-filtered_grid = grid #filter_grid(grid)
+                    # Check if the pixel is considered black
+                    if is_black(pixel):
+                        f.write('1')
+                    else:
+                        f.write('0')
 
-rows = len(filtered_grid)
-cols = len(filtered_grid[0])
+                # Add a newline after each row
+                f.write('\n')
 
-# Create a graph from the grid
-graph = Graph(rows, cols)
+        # Read the grid from the text file
+        with open(output_file, 'r') as file:
+            lines = file.readlines()
+
+        # Convert the lines to a 2D list of integers
+        grid = [[int(char) for char in line.strip()] for line in lines]
+
+        # Create a graph from the grid
+        rows = len(grid)
+        cols = len(grid[0])
+        graph = Graph(rows, cols)
+        graph.create_graph(grid)
+
+        shortest_path_start = graph.find_shortest_path()
+        graphs.append(shortest_path_start)
+
+        # Check if shortest_path_start is not empty
+        if shortest_path_start:
+            shortest_path = graph.dijkstra(shortest_path_start)
+            connected_components = graph.update_grid_with_path(shortest_path, grid)
+            print(connected_components)
+            
+            # !
+            if connected_components < 330:
+                graphs.pop()
+                shortest_path = graph.dijkstra(graphs[-1])
+                graph.update_grid_with_path(shortest_path, grid)
+
+                # If there is only one connected component, break from the loop
+                if connected_components == 1:
+                    break
+                else:
+                    # Reduce the target size
+                    initial_target_size = (initial_target_size[0] - 1, initial_target_size[1] - 1)
+                break
+
+            # If there is only one connected component, break from the loop
+            if connected_components == 1:
+                break
+            else:
+                # Reduce the target size
+                initial_target_size = (initial_target_size[0] - 1, initial_target_size[1] - 1)
+        else:
+            graphs.pop()
+            shortest_path = graph.dijkstra(graphs[-1])
+            graph.update_grid_with_path(shortest_path, grid)
+
+            # Check the number of connected components
+            connected_components = sum(1 for node in graph.graph if node in graph.dijkstra(node) and graph.dijkstra(node)[node] == 0)
+
+            # If there is only one connected component, break from the loop
+            if connected_components == 1:
+                break
+            else:
+                # Reduce the target size
+                initial_target_size = (initial_target_size[0] - 1, initial_target_size[1] - 1)
+            break
+    
+    print('Number of graphs checked:',len(graphs))
+
+    return graph, grid
+
+# Example usage with a specified initial target size
+image_path = 'tracks/monza.jpg'
+output_file = 'output.txt'
+initial_target_size = (75, 75)
+graph, grid = process_image(image_path, output_file, initial_target_size)
+
 graph.print_graph()
 
 print('\n')
 
-# Find the shortest path and update the grid
-shortest_path_start = graph.find_shortest_path()
-shortest_path = graph.dijkstra(shortest_path_start)
-graph.update_grid_with_path(shortest_path)
-
 # Print the updated grid
-for row in filtered_grid:
+for row in grid:
     print(' '.join(map(str, row)))
-
 
 print('\n')
 
@@ -159,7 +199,7 @@ class BackgroundColors:
 
 # Print the grid for visualization
 i = 0
-for row in filtered_grid:
+for row in grid:
     for node in row:
         if node:
             color = BackgroundColors.BLUE
