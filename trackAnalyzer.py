@@ -129,9 +129,9 @@ def process_image(image_path, output_file, initial_target_size=(100, 100)):
             shortest_path = graph.dijkstra(shortest_path_start)
             connected_components = graph.update_grid_with_path(shortest_path, grid)
             print(connected_components)
-            
+
             # !
-            if connected_components < 330:
+            if connected_components < (width*3):
                 graphs.pop()
                 shortest_path = graph.dijkstra(graphs[-1])
                 graph.update_grid_with_path(shortest_path, grid)
@@ -171,7 +171,7 @@ def process_image(image_path, output_file, initial_target_size=(100, 100)):
     return graph, grid
 
 # Example usage with a specified initial target size
-image_path = 'tracks/monza.jpg'
+image_path = 'tracks/track.png'
 output_file = 'output.txt'
 initial_target_size = (75, 75)
 graph, grid = process_image(image_path, output_file, initial_target_size)
