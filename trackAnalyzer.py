@@ -17,7 +17,6 @@ class BackgroundColors:
     WHITE = '\033[47m'
 
 def is_black(pixel, threshold=100):
-    # Assuming pixel is in RGB format
     # Calculate luminance as a measure of intensity (brightness)
     if type(pixel) == int:
         luminance = 0
@@ -26,75 +25,31 @@ def is_black(pixel, threshold=100):
     # Check if luminance is below the threshold
     return luminance <= threshold
 
-def process_image(image_path, output_file, initial_target_size=(100, 100), output_image_path='output.jpg'):
-    images = []
+def process_image(image_path, size=(100, 100)):
+    # Open the image
     img = Image.open(image_path)
-    img = img.resize(initial_target_size, resample=Image.BOX)
-    width, height = img.size
-    results = []
 
-    # for y in range(height):
-    #     row = []
-    #     nodes = deque()
-    #     for x in range(width):
-    #         pixel = img.getpixel((x, y))
-    #         is_black_pixel = is_black(pixel)
-    #         row.append('1' if is_black_pixel else '0')
-    #         if is_black_pixel:
-    #             negX = width - 1
-    #             while negX != x:
-    #                 if is_black(img.getpixel((negX, y))):
-    #                     nodes.append('1')
-    #                 elif '1' in nodes:
-    #                     nodes.append('0')
-    #                 else:
-    #                     nodes.append('0')
-    #                 negX -= 1
-    #             while nodes:
-    #                 row.append(nodes.pop())
-    #             break
-    #     results.append(''.join(row))
-    grid = []
+    # Scale it to size
+    img = img.resize(size, resample=Image.BOX)
+    
+    width, height = img.size
+
+    i = 0
+    xCoords = []
+    yCoords = []
     for y in range(height):
-        row = []
         for x in range(width):
             pixel = img.getpixel((x, y))
             if is_black(pixel):
-                row.append(1)
-            else:
-                row.append(0)
-        grid.append(row)
-
-    return grid
-
-def addNodes(grid):
-    # Print the grid for visualization
-    i = 0
-    rowNum = 0
-    xCoords = []
-    yCoords = []
-    for row in grid:
-        rowNumStr = str(rowNum)
-        if rowNum < 100:
-            rowNumStr = '0'+str(rowNum)
-            if rowNum < 10:
-                rowNumStr = '0'+str(rowNumStr)
-        colNum = 0
-        if 1 in row:
-            for node in row:
-                if node == 1:
-                    i += 1
-                    xCoords.append(colNum)
-                    yCoords.append(-rowNum+len(grid))
-                colNum += 1
-        rowNum +=1
+                i += 1
+                xCoords.append(x)
+                yCoords.append(-y+height)
 
     formatted_i = "{:,}".format(i)  # Use format to add commas to the number
-    print(f'\nNumber of nodes: {formatted_i}')
-    return xCoords,yCoords
+
+    return xCoords,yCoords,f'\nNodes in track: {formatted_i}'
 
 def plotNodes(xCoords, yCoords):
-    # Assuming x_nodes and y_nodes are lists containing the x and y coordinates of nodes
     plt.plot(xCoords, yCoords, '.', label='Track Nodes')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
@@ -130,15 +85,14 @@ def printTracks(tracksFolder):
     print(f"You selected: {chosenTrack.split('.')[0].capitalize()}")
     return chosenTrack
 
+def timeEstimate(x):
+    return round((.00000067*(x**2)+.1), 2)
+
 def main():
-    def timeEstimate(x):
-        return round((.0000007 * (x**2) + .1), 2)
-    # Specify the relative path to your tracks folder
     tracksFolder = 'tracks'
     while True:
         image = printTracks(tracksFolder)
         imagePath = f'{tracksFolder}/{image}'
-        output_file = 'output.txt'  # Output file for the track in 1s and 0s
         while True:
             try:
                 size = int(input("\nEnter the size you want: "))
@@ -152,14 +106,15 @@ def main():
             except Exception as e:
                 print("Invalid size.")
         print('\nBuilding Track...')
-        print(f'Estimated Time is: {timeEstimate(size)} seconds.')
+        print(f'Estimated time is: {timeEstimate(size)} seconds.')
 
         startTime = time.time()
-        grid = process_image(imagePath, output_file, (size, size), output_image_path='output.jpg')
+        x, y, numNodes = process_image(imagePath, (size, size))
         endTime = time.time()
         print(f'Actual time was: {round(endTime-startTime,2)} seconds.')
 
-        x, y =  addNodes(grid)
+        print(numNodes)
+
         plotNodes(x, y)
         more = False
         while True:
