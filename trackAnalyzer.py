@@ -94,9 +94,9 @@ def process_image(image_path, output_file, initial_target_size=(100, 100), outpu
     return grid
 
 # Example usage with a specified initial target size
-image_path = 'tracks/daytona.jpg'
+image_path = 'tracks/cota.jpg'
 output_file = 'output.txt'
-initial_target_size = (50, 50)
+initial_target_size = (150, 150)
 grid = process_image(image_path, output_file, initial_target_size, output_image_path='output.jpg')
 
 print('\n')
