@@ -3,7 +3,10 @@ from PIL import Image
 def is_black(pixel, threshold=100):
     # Assuming pixel is in RGB format
     # Calculate luminance as a measure of intensity (brightness)
-    luminance = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
+    if type(pixel) == int:
+        luminance = 0
+    else:
+        luminance = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
     # Check if luminance is below the threshold
     return luminance <= threshold
 
@@ -91,9 +94,9 @@ def process_image(image_path, output_file, initial_target_size=(100, 100), outpu
     return grid
 
 # Example usage with a specified initial target size
-image_path = 'tracks/monza.jpg'
+image_path = 'tracks/daytona.jpg'
 output_file = 'output.txt'
-initial_target_size = (100, 100)
+initial_target_size = (50, 50)
 grid = process_image(image_path, output_file, initial_target_size, output_image_path='output.jpg')
 
 print('\n')
