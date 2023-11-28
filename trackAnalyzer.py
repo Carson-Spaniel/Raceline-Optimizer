@@ -33,36 +33,37 @@ def process_image(image_path, output_file, initial_target_size=(100, 100), outpu
     width, height = img.size
     results = []
 
+    # for y in range(height):
+    #     row = []
+    #     nodes = deque()
+    #     for x in range(width):
+    #         pixel = img.getpixel((x, y))
+    #         is_black_pixel = is_black(pixel)
+    #         row.append('1' if is_black_pixel else '0')
+    #         if is_black_pixel:
+    #             negX = width - 1
+    #             while negX != x:
+    #                 if is_black(img.getpixel((negX, y))):
+    #                     nodes.append('1')
+    #                 elif '1' in nodes:
+    #                     nodes.append('0')
+    #                 else:
+    #                     nodes.append('0')
+    #                 negX -= 1
+    #             while nodes:
+    #                 row.append(nodes.pop())
+    #             break
+    #     results.append(''.join(row))
+    grid = []
     for y in range(height):
         row = []
-        nodes = deque()
         for x in range(width):
             pixel = img.getpixel((x, y))
-            is_black_pixel = is_black(pixel)
-            row.append('1' if is_black_pixel else '0')
-            if is_black_pixel:
-                negX = width - 1
-                while negX != x:
-                    if is_black(img.getpixel((negX, y))):
-                        nodes.append('1')
-                    elif '1' in nodes:
-                        nodes.append('0')
-                    else:
-                        nodes.append('0')
-                    negX -= 1
-                while nodes:
-                    row.append(nodes.pop())
-                break
-        results.append(''.join(row))
-
-    with open(output_file, 'w') as f:
-        f.write('\n'.join(results))
-
-    with open(output_file, 'r') as file:
-        lines = file.readlines()
-        images.append(lines)
-
-    grid = [list(map(int, line.strip())) for line in lines]
+            if is_black(pixel):
+                row.append(1)
+            else:
+                row.append(0)
+        grid.append(row)
 
     return grid
 
@@ -79,15 +80,17 @@ def addNodes(grid):
             if rowNum < 10:
                 rowNumStr = '0'+str(rowNumStr)
         colNum = 0
-        for node in row:
-            if node == 1:
-                i += 1
-                xCoords.append(colNum)
-                yCoords.append(-rowNum+len(grid))
-            colNum += 1
+        if 1 in row:
+            for node in row:
+                if node == 1:
+                    i += 1
+                    xCoords.append(colNum)
+                    yCoords.append(-rowNum+len(grid))
+                colNum += 1
         rowNum +=1
 
-    print(f'\nNumber of nodes: {i}')
+    formatted_i = "{:,}".format(i)  # Use format to add commas to the number
+    print(f'\nNumber of nodes: {formatted_i}')
     return xCoords,yCoords
 
 def plotNodes(xCoords, yCoords):
@@ -129,7 +132,7 @@ def printTracks(tracksFolder):
 
 def main():
     def timeEstimate(x):
-        return round(.85*(np.exp(x * 0.00136)) - .85, 2)
+        return round((.0000007 * (x**2) + .1), 2)
     # Specify the relative path to your tracks folder
     tracksFolder = 'tracks'
     while True:
@@ -140,10 +143,10 @@ def main():
             try:
                 size = int(input("\nEnter the size you want: "))
                 if size > 0:
-                    if size < 3000:
-                        break
+                    if size < 80:
+                        print('Enter a size larger than 80.')
                     else:
-                        print("Size is too big. Keep it under 3000.")
+                        break
                 else:
                     print("Enter a positive number.")
             except Exception as e:
