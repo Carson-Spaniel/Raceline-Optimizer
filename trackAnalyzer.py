@@ -1,9 +1,8 @@
 from PIL import Image
 import matplotlib.pyplot as plt
 import os
-import numpy as np
 import time
-from collections import deque
+from multiprocessing import Pool, freeze_support
 
 class BackgroundColors:
     RESET = '\033[0m'
@@ -25,29 +24,24 @@ def is_black(pixel, threshold=100):
     # Check if luminance is below the threshold
     return luminance <= threshold
 
-def process_image(image_path, size=(100, 100)):
-    # Open the image
-    img = Image.open(image_path)
-
-    # Scale it to size
-    img = img.resize(size, resample=Image.BOX)
-    
-    width, height = img.size
+def processImageSection(args):
+    image_section, size, offset = args
+    width, height = size
 
     i = 0
     xCoords = []
     yCoords = []
     for y in range(height):
         for x in range(width):
-            pixel = img.getpixel((x, y))
+            pixel = image_section.getpixel((x, y))
             if is_black(pixel):
                 i += 1
-                xCoords.append(x)
-                yCoords.append(-y+height)
+                xCoords.append(x + offset[0])
+                yCoords.append(-y + height + offset[1])
 
     formatted_i = "{:,}".format(i)  # Use format to add commas to the number
 
-    return xCoords,yCoords,f'\nNodes in track: {formatted_i}'
+    return xCoords, yCoords, f'\nNodes in track: {formatted_i}'
 
 def plotNodes(xCoords, yCoords):
     plt.plot(xCoords, yCoords, '.', label='Track Nodes')
@@ -99,23 +93,54 @@ def main():
                 if size > 0:
                     if size < 80:
                         print('Enter a size larger than 80.')
+                    elif size > 40000:
+                        print('Enter a size smaller than 40,000.')
                     else:
                         break
                 else:
                     print("Enter a positive number.")
             except Exception as e:
                 print("Invalid size.")
+                
         print('\nBuilding Track...')
-        print(f'Estimated time is: {timeEstimate(size)} seconds.')
+        # print(f'Estimated time is: {timeEstimate(size)} seconds.')
 
         startTime = time.time()
-        x, y, numNodes = process_image(imagePath, (size, size))
+
+        # Open image
+        img = Image.open(imagePath)
+
+        # Scale it to size
+        img = img.resize((size, size), resample=Image.BOX)
+
+        # Split the image into sections
+        width, height = img.size
+        num_processes = os.cpu_count()  # Number of processes
+        section_width = width // num_processes
+        image_sections = [(img.crop((i * section_width, 0, (i + 1) * section_width, height)), (section_width, height), (i * section_width, 0)) for i in range(num_processes)]
+
+        # Create a multiprocessing Pool
+        pool = Pool()
+
+        # Use pool.map() to run the function in parallel
+        results = pool.map(processImageSection, image_sections)
+
+        pool.close()
+        pool.join()
+
+        # Combine the results
+        xCoords = sum((result[0] for result in results), [])
+        yCoords = sum((result[1] for result in results), [])
+        total_nodes = sum(int(result[2].split(': ')[1].replace(',', '')) for result in results)
+        formatted_total_nodes = "{:,}".format(total_nodes)
+
         endTime = time.time()
-        print(f'Actual time was: {round(endTime-startTime,2)} seconds.')
 
-        print(numNodes) # Prints the number of nodes in the track 
+        print(f'\nActual time was: {round(endTime-startTime,2)} seconds.')
 
-        plotNodes(x, y)
+        print(f'Number of track nodes: {formatted_total_nodes}') # Prints the number of nodes in the track 
+
+        plotNodes(xCoords, yCoords)
         more = False
         while True:
             choice = str(input('Test another track? (y/n): '))
@@ -130,4 +155,6 @@ def main():
         if not more:
             break
 
-main()
+if __name__ == "__main__":
+    freeze_support()
+    main()
