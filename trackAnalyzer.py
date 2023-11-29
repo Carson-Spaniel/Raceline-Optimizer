@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import time
 from multiprocessing import Pool, freeze_support
+import math
 
 class BackgroundColors:
     RESET = '\033[0m'
@@ -83,7 +84,7 @@ def printTracks(tracksFolder):
     return chosenTrack
 
 def timeEstimate(x):
-    return round((.00000067*(x**2)+.1), 2)
+    return round((x/os.cpu_count()/43), 2)
 
 def main():
     tracksFolder = 'tracks'
@@ -96,8 +97,8 @@ def main():
                 if size > 0:
                     if size < 80:
                         print('Enter a size larger than 80.')
-                    elif size > 40000:
-                        print('Enter a size smaller than 40,000.')
+                    elif size > (1500*os.cpu_count()):
+                        print(f'Enter a size smaller than','{:,}.'.format(1500*os.cpu_count()))
                     else:
                         break
                 else:
@@ -107,6 +108,8 @@ def main():
 
         print('\nBuilding Track...')
         # print(f'Estimated time is: {timeEstimate(size)} seconds.')
+
+        # print(f'CPU count: {math.floor(os.cpu_count()*.8)}')
 
         startTime = time.time()
 
@@ -139,7 +142,7 @@ def main():
 
         endTime = time.time()
 
-        print(f'\nActual time was: {round(endTime-startTime,2)} seconds.')
+        print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
 
         print(f'Number of track nodes: {formatted_total_nodes}') # Prints the number of nodes in the track 
 
