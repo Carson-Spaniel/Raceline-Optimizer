@@ -65,6 +65,7 @@ def printTracks(tracksFolder):
 
     while True:
         # Prompt the user to choose a track
+        # TODO Implement a try catch here for the int(input)
         selected_track_index = int(input("\nEnter the number of the track you want to choose: ")) - 1
         if selected_track_index == -1:
             print('Invalid choice.')
