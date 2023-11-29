@@ -113,7 +113,7 @@ def main():
         endTime = time.time()
         print(f'Actual time was: {round(endTime-startTime,2)} seconds.')
 
-        print(numNodes)
+        print(numNodes) # Prints the number of nodes in the track 
 
         plotNodes(x, y)
         more = False
