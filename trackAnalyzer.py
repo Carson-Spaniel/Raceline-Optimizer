@@ -65,17 +65,19 @@ def printTracks(tracksFolder):
 
     while True:
         # Prompt the user to choose a track
-        # TODO Implement a try catch here for the int(input)
-        selected_track_index = int(input("\nEnter the number of the track you want to choose: ")) - 1
-        if selected_track_index == -1:
+        try:
+            selected_track_index = int(input("\nEnter the number of the track you want to choose: ")) - 1
+            if selected_track_index == -1:
+                print('Invalid choice.')
+            else:
+                try:
+                    # Retrieve the chosen track filename
+                    chosenTrack = trackFiles[selected_track_index]
+                    break
+                except Exception as e:
+                    print('Selected option not in list.')
+        except Exception as e:
             print('Invalid choice.')
-        else:
-            try:
-                # Retrieve the chosen track filename
-                chosenTrack = trackFiles[selected_track_index]
-                break
-            except Exception as e:
-                print('Selected option not in list.')
 
     print(f"You selected: {chosenTrack.split('.')[0].capitalize()}")
     return chosenTrack
@@ -102,7 +104,7 @@ def main():
                     print("Enter a positive number.")
             except Exception as e:
                 print("Invalid size.")
-                
+
         print('\nBuilding Track...')
         # print(f'Estimated time is: {timeEstimate(size)} seconds.')
 
