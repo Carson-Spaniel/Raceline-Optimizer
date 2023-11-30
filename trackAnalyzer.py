@@ -40,9 +40,7 @@ def processImageSection(args):
                 xCoords.append(x + offset[0])
                 yCoords.append(-y + height + offset[1])
 
-    formatted_i = "{:,}".format(i)  # Use format to add commas to the number
-
-    return xCoords, yCoords, f'\nNodes in track: {formatted_i}'
+    return xCoords, yCoords, i
 
 def plotNodes(xCoords, yCoords):
     plt.plot(xCoords, yCoords, '.', label='Track Nodes')
@@ -125,26 +123,30 @@ def main():
         section_width = width // num_processes
         image_sections = [(img.crop((i * section_width, 0, (i + 1) * section_width, height)), (section_width, height), (i * section_width, 0)) for i in range(num_processes)]
 
-        # Create a multiprocessing Pool
-        pool = Pool()
+        # Evaluates if multiprocessing is needed or will it slow it down
+        if size > 1750:
+             # Create a multiprocessing Pool
+            pool = Pool()
 
-        # Use pool.map() to run the function in parallel
-        results = pool.map(processImageSection, image_sections)
+            # Use pool.map() to run the function in parallel
+            results = pool.map(processImageSection, image_sections)
 
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
-        # Combine the results
-        xCoords = sum((result[0] for result in results), [])
-        yCoords = sum((result[1] for result in results), [])
-        total_nodes = sum(int(result[2].split(': ')[1].replace(',', '')) for result in results)
-        formatted_total_nodes = "{:,}".format(total_nodes)
+            # Combine the results
+            xCoords = sum((result[0] for result in results), [])
+            yCoords = sum((result[1] for result in results), [])
+            total_nodes = sum(int(result[2]) for result in results)
+        else:
+            xCoords, yCoords, total_nodes = processImageSection([img,(size,size),(0,0)])
+
+        numNodes = "{:,}".format(total_nodes)
 
         endTime = time.time()
 
         print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
-
-        print(f'Number of track nodes: {formatted_total_nodes}') # Prints the number of nodes in the track 
+        print(f'Number of track nodes: {numNodes}') # Number of sections the track was split into
 
         plotNodes(xCoords, yCoords)
         more = False
