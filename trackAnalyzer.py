@@ -1,10 +1,12 @@
 from PIL import Image
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import os
 import time
 from multiprocessing import Pool, freeze_support
 import concurrent.futures
 import random
+import math
 
 class BackgroundColors:
     RESET = '\033[0m'
@@ -82,11 +84,6 @@ def printTracks(tracksFolder):
     print(f"You selected: {chosenTrack.split('.')[0].capitalize()}")
     return chosenTrack
 
-def stop_on_result(result, pool):
-    # If a result was found, terminate the other processes
-    if result and not stop_process.value:
-        pool.terminate()
-
 getMove = {
     '0111':['0011','0111','0100'],
     '0100':['0111','0100','0101'],
@@ -137,12 +134,11 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     except IndexError:
         return None, None
 
-
 def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes):
-    numberToBeatLow = round(numNodes * .30,0)
-    numberToBeatHigh = round(numNodes * .37,0)
-    print(f'\nSearching paths with at least {numberToBeatLow} nodes but no more than {numberToBeatHigh} nodes.\n')
     nodeCount = 1e7
+    numberToBeatLow = round(numNodes * .27,0)
+    numberToBeatHigh = round(numNodes * .4,0)
+    print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
     path = None
     pathCounter = 1
     nodes = 0
@@ -150,7 +146,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
     while path == None or pathCounter < 1:
         currPosX = startDirX
         currPosY = startDirY
-        moves = [None, direction, None]
+        moves = getMove[direction]
         currPathX = [currPosX]
         currPathY = [currPosY]
         movesPath = []
@@ -159,10 +155,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
             i = 0
             nodes = 0
             while (currPosX,currPosY) != (startX, startY):
-                if None in moves:
-                    moves = getMove[moves[1]]
-                else:
-                    moves = getMove[moves[random.randint(0,2)]]
+                moves = getMove[moves[random.randint(0,2)]]
                 currPosX, currPosY = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
                 if currPosX == None:
                     if i == 100:
@@ -212,7 +205,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 #     visited.pop()
             
             
-            if nodes <= nodeCount and nodes > numberToBeatLow and nodes < numberToBeatHigh:
+            if nodes <= nodeCount and nodes > numberToBeatLow and moves[1] == direction:
                 print('Path found.')
                 print(f'{nodes} Nodes.\n')
                 # print('Same distance path found')
@@ -220,21 +213,23 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 path = (currPathX, currPathY)
                 pathCounter += 1
                 pathsChecked += 1
+                plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+                plt.plot(currPathX, currPathY, 'k-', label='Connection Line', color='b')
+                plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
+                plt.plot(startX, startY, 'd', label='Finish Node', color='r')
+                plt.xlabel('X-axis')
+                plt.ylabel('Y-axis')
+                plt.title(f'Number of nodes in path: {nodeCount}', loc='center')
+                plt.legend()
+                plt.show()
         except Exception as e:
             # print("Path not found.")
             pathsChecked += 1
-            # plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-            # plt.plot(currPathX, currPathY, 'k-', label='Connection Line', color='b')
-            # plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
-            # plt.plot(startX, startY, 'd', label='Finish Node', color='r')
-            # plt.xlabel('X-axis')
-            # plt.ylabel('Y-axis')
-            # plt.title('Track Map with Nodes')
-            # plt.legend()
-            # plt.show()
+            # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
+            #     pathCounter += 1
     print(f'Checked {pathsChecked} paths.')
 
-    return path
+    return path, nodeCount
 
 def start(x,y,direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
@@ -248,29 +243,29 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
     startTime = time.time()
 
-    # with concurrent.futures.ProcessPoolExecutor() as executor:
-    #     futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes) for _ in range(4)}
-    #     done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes) for _ in range(math.floor(os.cpu_count()*.6))}
+        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
 
-    #     # Get the result from the first completed task
-    #     results = next(iter(done)).result()
+        # Get the result from the first completed task
+        results = next(iter(done)).result()
 
-    #     # Cancel all tasks that are not done yet
-    #     for future in not_done:
-    #         future.cancel()
+        # Cancel all tasks that are not done yet
+        for future in not_done:
+            future.cancel()
 
-    results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
+    # results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
     endTime = time.time()
 
     print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
 
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-    plt.plot(results[0], results[1], 'k-', label='Connection Line', color='b')
+    plt.plot(results[0][0], results[0][1], 'k-', label='Connection Line', color='b')
     plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
     plt.plot(x, y, 'd', label='Finish Node', color='r')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
-    plt.title('Track Map with Nodes')
+    plt.title(f'Number of nodes in path: {results[1]}', loc='center')
     plt.legend()
     plt.show()
 
