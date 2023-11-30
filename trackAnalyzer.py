@@ -81,6 +81,33 @@ def printTracks(tracksFolder):
     print(f"You selected: {chosenTrack.split('.')[0].capitalize()}")
     return chosenTrack
 
+def start(x,y,direction, xCoords, yCoords):
+    print(f'{x=}')
+    print(f'{y=}')
+    print(f'{direction=}')
+    iNeg = int(direction[0])
+    jNeg = int(direction[2])
+    i = int(direction[1])
+    j = int(direction[3])
+    if iNeg:
+        print('making i negative.')
+        i *= -1
+    if jNeg:
+        print('making j negative.')
+        j *= -1
+    print(f'Direction X coordinate: {x+j}')
+    print(f'Direction Y coordinate: {y+i}')
+    plt.plot(xCoords, yCoords, '.', label='Track Nodes')
+    plt.plot([x+j, x], [y+i, y], 'k-', label='Connection Line')
+    plt.plot(x+j, y+i, 'D', label='Starting Direction', color='r')
+    plt.plot(x, y, 'o', label='Starting Node', color='g')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title('Track Map with Nodes')
+    plt.legend()
+    plt.show()
+
+
 def timeEstimate(x):
     return round((x/os.cpu_count()/43), 2)
 
@@ -148,7 +175,45 @@ def main():
         print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
         print(f'Number of track nodes: {numNodes}') # Number of sections the track was split into
 
+        print('\nFind the starting X and Y coordinates as well as the starting direction.')
         plotNodes(xCoords, yCoords)
+
+        directions = {
+            1:['N','0100'],
+            2:['NE','0101'],
+            3:['E','0001'],
+            4:['SE','1101'],
+            5:['S','1100'],
+            6:['SW','1111'],
+            7:['W','0011'],
+            8:['NW','0111'],
+        }
+
+        while True:
+            try:
+                # TODO implement ways to not have to restart
+                xCoord = int(input('Enter starting X coordinate: '))
+                if xCoord <= width:
+                    yCoord = int(input('Enter starting Y coordinate: '))
+                    if yCoord <= height:
+                        print('Relative cardinal directions:')
+                        # TODO add int error checking
+                        for key in directions:
+                            print(f'{key}. {directions[key][0]}')
+                        try:
+                            choice = directions[int(input('\nPick a starting direction: '))]
+                            print(f"You selected: {choice[0]} ({choice[1]})")
+                            break
+                        except Exception as e:
+                            print('Invalid choice.')
+                    else:
+                        print("Y Coordinate not in graph bounds.")
+                else:
+                    print("X Coordinate not in graph bounds.")
+            except Exception as e:
+                print('Invalid coordinate.')
+
+        start(xCoord,yCoord,choice[1], xCoords, yCoords)
         more = False
         while True:
             choice = str(input('Test another track? (y/n): '))
