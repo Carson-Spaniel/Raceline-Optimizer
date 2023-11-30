@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import os
 import time
 from multiprocessing import Pool, freeze_support
-import math
+import concurrent.futures
+import random
 
 class BackgroundColors:
     RESET = '\033[0m'
@@ -43,7 +44,7 @@ def processImageSection(args):
     return xCoords, yCoords, i
 
 def plotNodes(xCoords, yCoords):
-    plt.plot(xCoords, yCoords, '.', label='Track Nodes')
+    plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.title('Track Map with Nodes')
@@ -81,26 +82,192 @@ def printTracks(tracksFolder):
     print(f"You selected: {chosenTrack.split('.')[0].capitalize()}")
     return chosenTrack
 
-def start(x,y,direction, xCoords, yCoords):
-    print(f'{x=}')
-    print(f'{y=}')
-    print(f'{direction=}')
+def stop_on_result(result, pool):
+    # If a result was found, terminate the other processes
+    if result and not stop_process.value:
+        pool.terminate()
+
+getMove = {
+    '0111':['0011','0111','0100'],
+    '0100':['0111','0100','0101'],
+    '0101':['0100','0101','0001'],
+    '0011':['1111','0011','0111'],
+    '0001':['0101','0001','1101'],
+    '1111':['0011','1111','1100'],
+    '1100':['1111','1100','1101'],
+    '1101':['1100','1101','0001']
+}
+
+def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited):
+    nextMove = []
+    nextDist = 1e7 # Infinity
+    index = 0
+    for move in moves:
+        iNeg = int(move[0])
+        jNeg = int(move[2])
+        i = int(move[1])
+        j = int(move[3])
+        if iNeg:
+            i *= -1
+        if jNeg:
+            j *= -1
+        nextX = currPosX + j
+        nextY = currPosY + i
+        coords = (nextX,nextY)
+        if nextX in xCoords and nextY in yCoords:
+            xIndex = [i for i, x in enumerate(xCoords) if x == nextX]
+            yIndex = [i for i, y in enumerate(yCoords) if y == nextY]
+
+            if any(index in yIndex for index in xIndex) and coords not in visited:
+                xDist = abs(startX - nextX)
+                yDist = abs(startY - nextY)
+                dist = xDist + yDist
+                # if index == 1:
+                #     dist - 1
+                if dist < nextDist:
+                    nextDist = dist
+                    nextMove.append(coords)
+        else:
+            try:
+                nextMove.pop()
+            except IndexError:
+                nextMove = []
+    try:
+        return nextMove[-1]
+    except IndexError:
+        return None, None
+
+
+def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes):
+    numberToBeatLow = round(numNodes * .30,0)
+    numberToBeatHigh = round(numNodes * .37,0)
+    print(f'\nSearching paths with at least {numberToBeatLow} nodes but no more than {numberToBeatHigh} nodes.\n')
+    nodeCount = 1e7
+    path = None
+    pathCounter = 1
+    nodes = 0
+    pathsChecked = 0
+    while path == None or pathCounter < 1:
+        currPosX = startDirX
+        currPosY = startDirY
+        moves = [None, direction, None]
+        currPathX = [currPosX]
+        currPathY = [currPosY]
+        movesPath = []
+        visited = [(currPosX,currPosY)]
+        try:
+            i = 0
+            nodes = 0
+            while (currPosX,currPosY) != (startX, startY):
+                if None in moves:
+                    moves = getMove[moves[1]]
+                else:
+                    moves = getMove[moves[random.randint(0,2)]]
+                currPosX, currPosY = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
+                if currPosX == None:
+                    if i == 100:
+                        raise Exception
+                    currPosX = currPathX.pop()
+                    currPosY = currPathY.pop()
+                    moves = movesPath.pop()
+                    visited.pop()
+                    i += 1
+                    nodes -= 1
+                else:
+                # if currPosX:
+                    currPathX.append(currPosX)
+                    currPathY.append(currPosY)
+                    movesPath.append(moves)
+                    visited.append((currPosX, currPosY))
+                    nodes += 1
+                # else:
+                #     try:
+                #         currPosX = currPathX.pop()
+                #         currPosX = currPathX.pop()
+                #     except Exception as e:
+                #         print(e)
+                #     try:
+                #         currPosY = currPathY.pop()
+                #         currPosY = currPathY.pop()
+                #     except Exception as e:
+                #         print(e)
+                #     try:
+                #         moves = movesPath.pop()
+                #         moves = movesPath.pop()
+                #     except Exception as e:
+                #         print(e)
+                #     try:
+                #         visited.pop()
+                #         visited.pop()
+                #     except Exception as e:
+                #         print(e)
+                        
+                # print(f'{currPosX}, {currPosY}')
+                # print(f'{moves}')
+                # time.sleep(.5)
+                # while currPosX == None:
+                #     currPosX = currPathX.pop()
+                #     currPosY = currPathY.pop()
+                #     moves = movesPath.pop()
+                #     visited.pop()
+            
+            
+            if nodes <= nodeCount and nodes > numberToBeatLow and nodes < numberToBeatHigh:
+                print('Path found.')
+                print(f'{nodes} Nodes.\n')
+                # print('Same distance path found')
+                nodeCount = nodes
+                path = (currPathX, currPathY)
+                pathCounter += 1
+                pathsChecked += 1
+        except Exception as e:
+            # print("Path not found.")
+            pathsChecked += 1
+            # plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+            # plt.plot(currPathX, currPathY, 'k-', label='Connection Line', color='b')
+            # plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
+            # plt.plot(startX, startY, 'd', label='Finish Node', color='r')
+            # plt.xlabel('X-axis')
+            # plt.ylabel('Y-axis')
+            # plt.title('Track Map with Nodes')
+            # plt.legend()
+            # plt.show()
+    print(f'Checked {pathsChecked} paths.')
+
+    return path
+
+def start(x,y,direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
     jNeg = int(direction[2])
     i = int(direction[1])
     j = int(direction[3])
     if iNeg:
-        print('making i negative.')
         i *= -1
     if jNeg:
-        print('making j negative.')
         j *= -1
-    print(f'Direction X coordinate: {x+j}')
-    print(f'Direction Y coordinate: {y+i}')
-    plt.plot(xCoords, yCoords, '.', label='Track Nodes')
-    plt.plot([x+j, x], [y+i, y], 'k-', label='Connection Line')
-    plt.plot(x+j, y+i, 'D', label='Starting Direction', color='r')
-    plt.plot(x, y, 'o', label='Starting Node', color='g')
+
+    startTime = time.time()
+
+    # with concurrent.futures.ProcessPoolExecutor() as executor:
+    #     futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes) for _ in range(4)}
+    #     done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+
+    #     # Get the result from the first completed task
+    #     results = next(iter(done)).result()
+
+    #     # Cancel all tasks that are not done yet
+    #     for future in not_done:
+    #         future.cancel()
+
+    results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
+    endTime = time.time()
+
+    print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
+
+    plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+    plt.plot(results[0], results[1], 'k-', label='Connection Line', color='b')
+    plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
+    plt.plot(x, y, 'd', label='Finish Node', color='r')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.title('Track Map with Nodes')
@@ -120,8 +287,8 @@ def main():
             try:
                 size = int(input("\nEnter the size you want: "))
                 if size > 0:
-                    if size < 80:
-                        print('Enter a size larger than 80.')
+                    if size < 50:
+                        print('Enter a size larger than 50.')
                     elif size > (1500*os.cpu_count()):
                         print(f'Enter a size smaller than','{:,}.'.format(1500*os.cpu_count()))
                     else:
@@ -202,7 +369,7 @@ def main():
                             print(f'{key}. {directions[key][0]}')
                         try:
                             choice = directions[int(input('\nPick a starting direction: '))]
-                            print(f"You selected: {choice[0]} ({choice[1]})")
+                            print(f"You selected: {choice[0]}")
                             break
                         except Exception as e:
                             print('Invalid choice.')
@@ -213,7 +380,8 @@ def main():
             except Exception as e:
                 print('Invalid coordinate.')
 
-        start(xCoord,yCoord,choice[1], xCoords, yCoords)
+        start(xCoord,yCoord,choice[1], xCoords, yCoords, total_nodes)
+
         more = False
         while True:
             choice = str(input('Test another track? (y/n): '))
