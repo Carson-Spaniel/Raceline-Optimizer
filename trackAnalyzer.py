@@ -1,6 +1,7 @@
 from PIL import Image
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from scipy.interpolate import make_interp_spline, BSpline
+import numpy as np
 import os
 import time
 from multiprocessing import Pool, freeze_support
@@ -134,7 +135,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     except IndexError:
         return None, None
 
-def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes):
+def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes, concurrentProcesses):
     nodeCount = 1e7
     numberToBeatLow = round(numNodes * .27,0)
     numberToBeatHigh = round(numNodes * .4,0)
@@ -143,7 +144,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
     pathCounter = 1
     nodes = 0
     pathsChecked = 0
-    while path == None or pathCounter < 1:
+    while path == None or pathCounter < 5:
         currPosX = startDirX
         currPosY = startDirY
         moves = getMove[direction]
@@ -173,63 +174,28 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     movesPath.append(moves)
                     visited.append((currPosX, currPosY))
                     nodes += 1
-                # else:
-                #     try:
-                #         currPosX = currPathX.pop()
-                #         currPosX = currPathX.pop()
-                #     except Exception as e:
-                #         print(e)
-                #     try:
-                #         currPosY = currPathY.pop()
-                #         currPosY = currPathY.pop()
-                #     except Exception as e:
-                #         print(e)
-                #     try:
-                #         moves = movesPath.pop()
-                #         moves = movesPath.pop()
-                #     except Exception as e:
-                #         print(e)
-                #     try:
-                #         visited.pop()
-                #         visited.pop()
-                #     except Exception as e:
-                #         print(e)
-                        
-                # print(f'{currPosX}, {currPosY}')
-                # print(f'{moves}')
-                # time.sleep(.5)
-                # while currPosX == None:
-                #     currPosX = currPathX.pop()
-                #     currPosY = currPathY.pop()
-                #     moves = movesPath.pop()
-                #     visited.pop()
-            
             
             if nodes <= nodeCount and nodes > numberToBeatLow and moves[1] == direction:
                 print('Path found.')
-                print(f'{nodes} Nodes.\n')
+                print(f'{nodes} Nodes.')
+                print(f'Checked {pathsChecked} paths.\n')
                 # print('Same distance path found')
                 nodeCount = nodes
                 path = (currPathX, currPathY)
                 pathCounter += 1
                 pathsChecked += 1
-                plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-                plt.plot(currPathX, currPathY, 'k-', label='Connection Line', color='b')
-                plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
-                plt.plot(startX, startY, 'd', label='Finish Node', color='r')
-                plt.xlabel('X-axis')
-                plt.ylabel('Y-axis')
-                plt.title(f'Number of nodes in path: {nodeCount}', loc='center')
-                plt.legend()
-                plt.show()
+                if concurrentProcesses:
+                    showPath(currPathX, currPathY, xCoords, yCoords, startDirX, startDirY, startX, startY, nodeCount)
+            if pathsChecked > 2000 and path:
+                return path, nodeCount, pathsChecked
+
         except Exception as e:
             # print("Path not found.")
             pathsChecked += 1
             # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
             #     pathCounter += 1
-    print(f'Checked {pathsChecked} paths.')
 
-    return path, nodeCount
+    return path, nodeCount, pathsChecked
 
 def start(x,y,direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
@@ -241,37 +207,93 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
     if jNeg:
         j *= -1
 
+    concurrentProcesses = True
+
     startTime = time.time()
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes) for _ in range(math.floor(os.cpu_count()*.6))}
-        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+    if concurrentProcesses:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes, concurrentProcesses) for _ in range(math.floor(os.cpu_count()*.6))}
+            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
 
-        # Get the result from the first completed task
-        results = next(iter(done)).result()
+            # Get the result from the first completed task
+            results = next(iter(done)).result()
 
-        # Cancel all tasks that are not done yet
-        for future in not_done:
-            future.cancel()
-
-    # results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
+    else:
+        results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses)
+    
     endTime = time.time()
 
     print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
 
+    if not concurrentProcesses:
+        showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, x, y, results[1])
+
+# def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, numNodes):
+#     # Extract marked points (every 5th point)
+#     markedX = xPath[::3]
+#     markedY = yPath[::3]
+
+#     # Adding the very last point to the marked points
+#     markedX.append(xPath[-1])
+#     markedY.append(yPath[-1])
+
+#     # Plotting with markers
+#     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+#     plt.plot(markedX, markedY, 'd', label='Control Points', color='b')
+
+#     # Connect the marked points with lines
+#     plt.plot(markedX, markedY, '-', color='b')
+#     plt.plot(startX, startY, 'o', label='Start Node', color='g')
+#     plt.plot(finishX, finishY, 'D', label='Finish Node', color='r')
+#     plt.xlabel('X-axis')
+#     plt.ylabel('Y-axis')
+#     plt.title(f'Number of nodes in path: {numNodes}', loc='center')
+#     plt.legend()
+#     plt.show()
+
+def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, numNodes):
+    # Point to divide track into
+    splitPoint = 3
+
+    # Extract marked points
+    markedX = xPath[::splitPoint]
+    markedY = yPath[::splitPoint]
+
+    # Adding the very last point to the marked points
+    markedX.append(startX)
+    markedY.append(startY)
+
+    #     # Connect the marked points with lines
+    plt.plot(markedX, markedY, '-', color='b')
+
+    # Find indices of duplicate x values
+    _, idx = np.unique(markedX, return_index=True)
+    duplicates = np.setdiff1d(np.arange(len(markedX)), idx)
+
+    # Split the track into sections based on duplicate x values
+    sections = np.split(np.c_[markedX, markedY], duplicates+1)
+
+    # Plotting with markers
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-    plt.plot(results[0][0], results[0][1], 'k-', label='Connection Line', color='b')
-    plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
-    plt.plot(x, y, 'd', label='Finish Node', color='r')
+    plt.plot(markedX, markedY, 'o', label='Control Points', color='b')
+
+    # # Connect the marked points with lines for each section
+    # for section in sections:
+    #     x, y = section.T
+    #     if len(x) >= 4:  # Only interpolate if there are enough points
+    #         tck = make_interp_spline(np.arange(len(x)), section)
+    #         xnew = np.linspace(0, len(x)-1, 500)
+    #         xnew, ynew = tck(xnew).T
+    #         plt.plot(xnew, ynew, '-', color='b')
+
+    plt.plot(startX, startY, 'D', label='Start Node', color='g')
+    plt.plot(finishX, finishY, 'D', label='Finish Node', color='r')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
-    plt.title(f'Number of nodes in path: {results[1]}', loc='center')
+    plt.title(f'Number of nodes in path: {numNodes}', loc='center')
     plt.legend()
     plt.show()
-
-
-def timeEstimate(x):
-    return round((x/os.cpu_count()/43), 2)
 
 def main():
     tracksFolder = 'tracks'
@@ -294,9 +316,6 @@ def main():
                 print("Invalid size.")
 
         print('\nBuilding Track...')
-        # print(f'Estimated time is: {timeEstimate(size)} seconds.')
-
-        # print(f'CPU count: {math.floor(os.cpu_count()*.8)}')
 
         startTime = time.time()
 
