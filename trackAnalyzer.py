@@ -6,7 +6,6 @@ import os
 import time
 from multiprocessing import Pool, freeze_support
 import concurrent.futures
-import random
 import math
 
 class BackgroundColors:
@@ -99,7 +98,6 @@ getMove = {
 def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited):
     nextMove = []
     nextDist = 1e7 # Infinity
-    index = 0
     nextMoveStr = moves[0]
     for move in moves:
         iNeg = int(move[0])
@@ -121,8 +119,6 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
                 xDist = abs(startX - nextX)
                 yDist = abs(startY - nextY)
                 dist = xDist + yDist
-                # if index == 1:
-                #     dist - 1
                 if dist < nextDist:
                     nextDist = dist
                     nextMove.append(coords)
@@ -206,9 +202,9 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 return path, nodes, pathsChecked
             # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
             #     pathCounter += 1
-        return (currPathX, currPathY), nodeCount, pathsChecked
+        return (currPathX, currPathY), nodes, pathsChecked
 
-    return path, nodeCount, pathsChecked
+    return path, nodes, pathsChecked
 
 def start(x,y,direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
@@ -289,7 +285,7 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, n
 
     # Plotting with markers
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-    plt.plot(markedX, markedY, 'o', label='Control Points', color='b')
+    plt.plot(markedX, markedY, 'k-', label='Control Points', color='b')
 
     # # Connect the marked points with lines for each section
     # for section in sections:
@@ -390,7 +386,7 @@ def main():
                 if xCoord <= width:
                     yCoord = int(input('Enter starting Y coordinate: '))
                     if yCoord <= height:
-                        print('Relative cardinal directions:')
+                        print('Relative cardinal direction of the track:')
                         # TODO add int error checking
                         for key in directions:
                             print(f'{key}. {directions[key][0]}')
