@@ -100,6 +100,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     nextMove = []
     nextDist = 1e7 # Infinity
     index = 0
+    nextMoveStr = moves[0]
     for move in moves:
         iNeg = int(move[0])
         jNeg = int(move[2])
@@ -125,29 +126,33 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
                 if dist < nextDist:
                     nextDist = dist
                     nextMove.append(coords)
+                    nextMoveStr = move
         else:
             try:
                 nextMove.pop()
             except IndexError:
                 nextMove = []
     try:
-        return nextMove[-1]
+        return (nextMove[-1], nextMoveStr)
     except IndexError:
-        return None, None
+        return ((None, None), nextMoveStr)
 
 def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes, concurrentProcesses):
     nodeCount = 1e7
     numberToBeatLow = round(numNodes * .27,0)
-    numberToBeatHigh = round(numNodes * .4,0)
     print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
     path = None
     pathCounter = 1
     nodes = 0
     pathsChecked = 0
-    while path == None or pathCounter < 5:
+    if concurrentProcesses:
+        countNeeded = 1
+    else:
+        countNeeded = 6
+    while path == None or pathCounter < countNeeded:
         currPosX = startDirX
         currPosY = startDirY
-        moves = getMove[direction]
+        move = direction
         currPathX = [currPosX]
         currPathY = [currPosY]
         movesPath = []
@@ -156,14 +161,18 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
             i = 0
             nodes = 0
             while (currPosX,currPosY) != (startX, startY):
-                moves = getMove[moves[random.randint(0,2)]]
-                currPosX, currPosY = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
+                if nodes > 500:
+                    return path, nodes, pathsChecked
+                moves = getMove[move]
+                coords, move = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
+                currPosX, currPosY = coords
                 if currPosX == None:
                     if i == 100:
                         raise Exception
                     currPosX = currPathX.pop()
                     currPosY = currPathY.pop()
                     moves = movesPath.pop()
+                    move = moves[1]
                     visited.pop()
                     i += 1
                     nodes -= 1
@@ -175,7 +184,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     visited.append((currPosX, currPosY))
                     nodes += 1
             
-            if nodes <= nodeCount and nodes > numberToBeatLow and moves[1] == direction:
+            if nodes <= nodeCount and moves[1] == direction:
                 print('Path found.')
                 print(f'{nodes} Nodes.')
                 print(f'Checked {pathsChecked} paths.\n')
@@ -186,14 +195,18 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 pathsChecked += 1
                 if concurrentProcesses:
                     showPath(currPathX, currPathY, xCoords, yCoords, startDirX, startDirY, startX, startY, nodeCount)
-            if pathsChecked > 2000 and path:
-                return path, nodeCount, pathsChecked
 
         except Exception as e:
-            # print("Path not found.")
+            print("Path not found.")
+            print(e)
             pathsChecked += 1
+            print(pathsChecked)
+            path = (currPathX, currPathY)
+            if pathsChecked > 50:
+                return path, nodes, pathsChecked
             # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
             #     pathCounter += 1
+        return (currPathX, currPathY), nodeCount, pathsChecked
 
     return path, nodeCount, pathsChecked
 
@@ -207,7 +220,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
     if jNeg:
         j *= -1
 
-    concurrentProcesses = True
+    concurrentProcesses = False
 
     startTime = time.time()
 
@@ -226,8 +239,8 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
     print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
 
-    if not concurrentProcesses:
-        showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, x, y, results[1])
+    # if not concurrentProcesses:
+    showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, x, y, results[1])
 
 # def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, numNodes):
 #     # Extract marked points (every 5th point)
@@ -254,7 +267,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
 def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, numNodes):
     # Point to divide track into
-    splitPoint = 3
+    splitPoint = 1
 
     # Extract marked points
     markedX = xPath[::splitPoint]
@@ -264,7 +277,7 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, n
     markedX.append(startX)
     markedY.append(startY)
 
-    #     # Connect the marked points with lines
+    # Connect the marked points with lines
     plt.plot(markedX, markedY, '-', color='b')
 
     # Find indices of duplicate x values
