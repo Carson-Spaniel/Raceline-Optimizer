@@ -114,7 +114,6 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
         if nextX in xCoords and nextY in yCoords:
             xIndex = [i for i, x in enumerate(xCoords) if x == nextX]
             yIndex = [i for i, y in enumerate(yCoords) if y == nextY]
-
             if any(index in yIndex for index in xIndex) and coords not in visited:
                 xDist = abs(startX - nextX)
                 yDist = abs(startY - nextY)
@@ -135,7 +134,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
 
 def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes, concurrentProcesses):
     nodeCount = 1e7
-    numberToBeatLow = round(numNodes * .27,0)
+    numberToBeatLow = round(numNodes * .1,0)
     print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
     path = None
     pathCounter = 1
@@ -153,8 +152,10 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
         currPathY = [currPosY]
         movesPath = []
         visited = [(currPosX,currPosY)]
+        runningX = []
+        runningY = []
         try:
-            i = 0
+            failed = 0
             nodes = 0
             while (currPosX,currPosY) != (startX, startY):
                 if nodes > 500:
@@ -163,19 +164,20 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 coords, move = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
                 currPosX, currPosY = coords
                 if currPosX == None:
-                    if i == 100:
+                    if failed == 1000:
                         raise Exception
                     currPosX = currPathX.pop()
                     currPosY = currPathY.pop()
                     moves = movesPath.pop()
                     move = moves[1]
                     visited.pop()
-                    i += 1
+                    failed += 1
                     nodes -= 1
                 else:
-                # if currPosX:
                     currPathX.append(currPosX)
                     currPathY.append(currPosY)
+                    runningX.append(currPosX)
+                    runningY.append(currPosY)
                     movesPath.append(moves)
                     visited.append((currPosX, currPosY))
                     nodes += 1
@@ -184,7 +186,6 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 print('Path found.')
                 print(f'{nodes} Nodes.')
                 print(f'Checked {pathsChecked} paths.\n')
-                # print('Same distance path found')
                 nodeCount = nodes
                 path = (currPathX, currPathY)
                 pathCounter += 1
@@ -196,13 +197,12 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
             print("Path not found.")
             print(e)
             pathsChecked += 1
-            print(pathsChecked)
             path = (currPathX, currPathY)
             if pathsChecked > 50:
                 return path, nodes, pathsChecked
             # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
             #     pathCounter += 1
-        return (currPathX, currPathY), nodes, pathsChecked
+        return (runningX, runningY), nodes, pathsChecked
 
     return path, nodes, pathsChecked
 
