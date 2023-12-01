@@ -1,6 +1,6 @@
 from PIL import Image
 import matplotlib.pyplot as plt
-from scipy.interpolate import make_interp_spline, BSpline
+# from scipy.interpolate import make_interp_spline, BSpline
 import numpy as np
 import os
 import time
