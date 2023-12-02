@@ -191,7 +191,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 pathCounter += 1
                 pathsChecked += 1
                 if concurrentProcesses:
-                    showPath(currPathX, currPathY, xCoords, yCoords, startDirX, startDirY, startX, startY, nodeCount)
+                    showPath(currPathX, currPathY, xCoords, yCoords, startDirX, startDirY, nodeCount)
 
         except Exception as e:
             print("Path not found.")
@@ -236,32 +236,9 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
     print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
 
     # if not concurrentProcesses:
-    showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, x, y, results[1])
+    showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, results[1])
 
-# def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, numNodes):
-#     # Extract marked points (every 5th point)
-#     markedX = xPath[::3]
-#     markedY = yPath[::3]
-
-#     # Adding the very last point to the marked points
-#     markedX.append(xPath[-1])
-#     markedY.append(yPath[-1])
-
-#     # Plotting with markers
-#     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-#     plt.plot(markedX, markedY, 'd', label='Control Points', color='b')
-
-#     # Connect the marked points with lines
-#     plt.plot(markedX, markedY, '-', color='b')
-#     plt.plot(startX, startY, 'o', label='Start Node', color='g')
-#     plt.plot(finishX, finishY, 'D', label='Finish Node', color='r')
-#     plt.xlabel('X-axis')
-#     plt.ylabel('Y-axis')
-#     plt.title(f'Number of nodes in path: {numNodes}', loc='center')
-#     plt.legend()
-#     plt.show()
-
-def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, numNodes):
+def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     # Point to divide track into
     splitPoint = 1
 
@@ -276,28 +253,11 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, finishX, finishY, n
     # Connect the marked points with lines
     plt.plot(markedX, markedY, '-', color='b')
 
-    # Find indices of duplicate x values
-    _, idx = np.unique(markedX, return_index=True)
-    duplicates = np.setdiff1d(np.arange(len(markedX)), idx)
-
-    # Split the track into sections based on duplicate x values
-    sections = np.split(np.c_[markedX, markedY], duplicates+1)
-
     # Plotting with markers
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     plt.plot(markedX, markedY, 'k-', label='Control Points', color='b')
-
-    # # Connect the marked points with lines for each section
-    # for section in sections:
-    #     x, y = section.T
-    #     if len(x) >= 4:  # Only interpolate if there are enough points
-    #         tck = make_interp_spline(np.arange(len(x)), section)
-    #         xnew = np.linspace(0, len(x)-1, 500)
-    #         xnew, ynew = tck(xnew).T
-    #         plt.plot(xnew, ynew, '-', color='b')
-
-    plt.plot(startX, startY, 'D', label='Start Node', color='g')
-    plt.plot(finishX, finishY, 'D', label='Finish Node', color='r')
+    plt.plot(markedX[0], markedY[0], 'D', label='Start Node', color='g')
+    plt.plot(startX, startY, 'D', label='Finish Node', color='r')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.title(f'Number of nodes in path: {numNodes}', loc='center')
