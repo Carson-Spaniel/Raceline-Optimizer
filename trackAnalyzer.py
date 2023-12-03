@@ -157,6 +157,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
         try:
             failed = 0
             nodes = 0
+            # Keeps checking if the position is back at the start
             while (currPosX,currPosY) != (startX, startY):
                 if nodes > 500:
                     return path, nodes, pathsChecked
