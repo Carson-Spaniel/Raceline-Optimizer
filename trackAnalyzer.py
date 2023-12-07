@@ -318,6 +318,7 @@ def main():
             yCoords = sum((result[1] for result in results), [])
             total_nodes = sum(int(result[2]) for result in results)
         else:
+            print('Starting a single process...')
             xCoords, yCoords, total_nodes = processImageSection([img,(size,size),(0,0)])
 
         numNodes = "{:,}".format(total_nodes)
