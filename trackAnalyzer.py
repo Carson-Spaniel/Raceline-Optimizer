@@ -303,6 +303,7 @@ def main():
 
         # Evaluates if multiprocessing is needed or will it slow it down
         if size > 1750:
+            print('Starting multiple processes...')
              # Create a multiprocessing Pool
             pool = Pool()
 
