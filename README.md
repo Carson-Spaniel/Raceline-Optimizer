@@ -11,7 +11,6 @@ This Python script serves as a raceline optimizer, featuring a carefully crafted
 - **Concurrent Events:** Uses concurrent events to find paths faster and optimize the exploration process.
 - **Track Visualization:** Generates a plot of the track nodes on a 2D graph using Matplotlib.
 - **Track Selection:** Allows users to choose a track from a specified folder for optimization.
-- **Time Estimation:** Provides an estimated processing time based on the chosen image size.
 - **Interactive Interface:** User-friendly interface for testing multiple tracks.
 
 ## Path Finding Algorithm
