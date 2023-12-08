@@ -84,6 +84,7 @@ def printTracks(tracksFolder):
     print(f"You selected: {chosenTrack.split('.')[0].capitalize()}")
     return chosenTrack
 
+# Dictionary of moves each with a specific direction
 getMove = {
     '0111':['0011','0111','0100'],
     '0100':['0111','0100','0101'],
