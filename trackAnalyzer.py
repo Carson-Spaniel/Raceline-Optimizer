@@ -101,6 +101,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     nextDist = 1e7 # Infinity
     nextMoveStr = moves[0]
     for move in moves:
+        # Extract the move based on the string
         iNeg = int(move[0])
         jNeg = int(move[2])
         i = int(move[1])
@@ -112,6 +113,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
         nextX = currPosX + j
         nextY = currPosY + i
         coords = (nextX,nextY)
+        # If the coordinates are in bounds of the track
         if nextX in xCoords and nextY in yCoords:
             xIndex = [i for i, x in enumerate(xCoords) if x == nextX]
             yIndex = [i for i, y in enumerate(yCoords) if y == nextY]
