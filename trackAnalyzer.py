@@ -167,8 +167,8 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 moves = getMove[move]
                 coords, move = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
                 currPosX, currPosY = coords
+                # If no current position, backtrack
                 if currPosX == None:
-                    # If no current position, backtrack
                     if failed == 1000:
                         raise Exception
                     currPosX = currPathX.pop()
