@@ -121,6 +121,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
                 xDist = abs(startX - nextX)
                 yDist = abs(startY - nextY)
                 dist = xDist + yDist
+                # If move is local minimum set to next move
                 if dist < nextDist:
                     nextDist = dist
                     nextMove.append(coords)
