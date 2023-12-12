@@ -8,17 +8,6 @@ from multiprocessing import Pool, freeze_support
 import concurrent.futures
 import math
 
-class BackgroundColors:
-    RESET = '\033[0m'
-    BLACK = '\033[40m'
-    RED = '\033[41m'
-    GREEN = '\033[42m'
-    YELLOW = '\033[43m'
-    BLUE = '\033[44m'
-    PURPLE = '\033[45m'
-    CYAN = '\033[46m'
-    WHITE = '\033[47m'
-
 def is_black(pixel, threshold=100):
     # Calculate luminance as a measure of intensity (brightness)
     if type(pixel) == int:
@@ -96,6 +85,7 @@ getMove = {
     '1101':['1100','1101','0001']
 }
 
+# Dictionary of opposite directions
 getOpposite = {
     '0111':'1101',
     '0100':'1100',
