@@ -96,6 +96,17 @@ getMove = {
     '1101':['1100','1101','0001']
 }
 
+getOpposite = {
+    '0111':'1101',
+    '0100':'1100',
+    '0101':'1111',
+    '0011':'0001',
+    '0001':'0011',
+    '1111':'0101',
+    '1100':'0100',
+    '1101':'0111'
+}
+
 def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited):
     nextMove = []
     nextDist = 1e7 # Infinity
@@ -140,7 +151,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
 def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes, concurrentProcesses):
     nodeCount = 1e7
     numberToBeatLow = round(numNodes * .1,0)
-    print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
+    # print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
     path = None
     pathCounter = 1
     nodes = 0
@@ -165,7 +176,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
             # Keeps checking if the position is back at the start
             while (currPosX,currPosY) != (startX, startY):
                 if nodes > 500:
-                    return path, nodes, pathsChecked
+                    return path, pathsChecked
                 moves = getMove[move]
                 coords, move = choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited)
                 currPosX, currPosY = coords
@@ -190,9 +201,9 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     nodes += 1
             
             if nodes <= nodeCount and moves[1] == direction:
-                print('Path found.')
-                print(f'{nodes} Nodes.')
-                print(f'Checked {pathsChecked} paths.\n')
+                # print('Path found.')
+                # print(f'{nodes} Nodes.')
+                # print(f'Checked {pathsChecked} paths.\n')
                 nodeCount = nodes
                 path = (currPathX, currPathY)
                 pathCounter += 1
@@ -201,17 +212,17 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     showPath(currPathX, currPathY, xCoords, yCoords, startDirX, startDirY, nodeCount)
 
         except Exception as e:
-            print("Path not found.")
-            print(e)
+            # print("Path not found.")
+            # print(e)
             pathsChecked += 1
             path = (currPathX, currPathY)
             if pathsChecked > 50:
-                return path, nodes, pathsChecked
+                return path, pathsChecked
             # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
             #     pathCounter += 1
-        return (runningX, runningY), nodes, pathsChecked
+        return (runningX, runningY), pathsChecked
 
-    return path, nodes, pathsChecked
+    return path, pathsChecked
 
 def start(x,y,direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
@@ -236,14 +247,52 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
             results = next(iter(done)).result()
 
     else:
-        results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses)
-    
-    endTime = time.time()
+        resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses)
+        resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, numNodes, concurrentProcesses)
 
-    print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
+        try:
+            maxDist = -1e7
+            maxDistCoord = None
+            maxDistIndex = None
+
+            for index in range(len(resultsDir1[0][0])):
+                coordX = resultsDir2[0][0][index]
+                coordY = resultsDir2[0][1][index]
+                xDist = abs(x - coordX)
+                yDist = abs(y - coordY)
+                dist = xDist + yDist
+                if dist > maxDist:
+                    maxDist = dist
+                    maxDistCoord = (coordX,coordY)
+                    maxDistIndex = index
+
+            for dirIndex in range(len(resultsDir1[0][0])):
+                if resultsDir1[0][0][dirIndex] == maxDistCoord[0] and resultsDir1[0][1][dirIndex] == maxDistCoord[1]:
+                    dir1Index = dirIndex
+
+            half1X = resultsDir2[0][0][maxDistIndex:-1]
+            half1Y = resultsDir2[0][1][maxDistIndex:-1]
+            half2X = resultsDir1[0][0][dir1Index:-1]
+            half2Y = resultsDir1[0][1][dir1Index:-1]
+
+            results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y)
+
+            endTime = time.time()
+            print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
+
+            showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
+        except:
+            print('\nError finding path.')
+            print('Displaying both directions.')
+
+            endTime = time.time()
+            print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
+
+            showPath(resultsDir1[0][0], resultsDir1[0][1], xCoords, yCoords, x+j, y+i, len(resultsDir1[0][0]))
+            showPath(resultsDir2[0][0], resultsDir2[0][1], xCoords, yCoords, x, y, len(resultsDir2[0][0]))
 
     # if not concurrentProcesses:
-    showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, results[1])
+    
 
 def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     # Point to divide track into
@@ -262,7 +311,7 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
 
     # Plotting with markers
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-    plt.plot(markedX, markedY, 'k-', label='Control Points', color='b')
+    plt.plot(markedX, markedY, '-', label='Control Points', color='b')
     plt.plot(markedX[0], markedY[0], 'D', label='Start Node', color='g')
     plt.plot(startX, startY, 'D', label='Finish Node', color='r')
     plt.xlabel('X-axis')
@@ -351,11 +400,11 @@ def main():
         while True:
             try:
                 # TODO implement ways to not have to restart
-                xCoord = int(input('Enter starting X coordinate: '))
+                xCoord = int(input('\nEnter starting X coordinate: '))
                 if xCoord <= width:
                     yCoord = int(input('Enter starting Y coordinate: '))
                     if yCoord <= height:
-                        print('Relative cardinal direction of the track:')
+                        print('\nRelative cardinal direction of the track:')
                         # TODO add int error checking
                         for key in directions:
                             print(f'{key}. {directions[key][0]}')
