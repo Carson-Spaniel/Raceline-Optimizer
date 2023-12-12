@@ -370,8 +370,9 @@ def main():
 
         endTime = time.time()
 
+        print(f'\nNumber of track nodes: {numNodes}') # Number of sections the track was split into
+
         print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
-        print(f'Number of track nodes: {numNodes}') # Number of sections the track was split into
 
         print('\nFind the starting X and Y coordinates as well as the starting direction.')
         plotNodes(xCoords, yCoords)
