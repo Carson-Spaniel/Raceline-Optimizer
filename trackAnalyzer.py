@@ -117,6 +117,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
         if nextX in xCoords and nextY in yCoords:
             xIndex = [i for i, x in enumerate(xCoords) if x == nextX]
             yIndex = [i for i, y in enumerate(yCoords) if y == nextY]
+            # If the coordinates have not been visited
             if any(index in yIndex for index in xIndex) and coords not in visited:
                 xDist = abs(startX - nextX)
                 yDist = abs(startY - nextY)
