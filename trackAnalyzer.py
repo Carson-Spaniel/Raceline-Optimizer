@@ -236,52 +236,48 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
             # Get the result from the first completed task
             results = next(iter(done)).result()
 
+            showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, len(results[0][0]))
     else:
         resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses)
         resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, numNodes, concurrentProcesses)
 
-        try:
-            maxDist = -1e7
-            maxDistCoord = None
-            maxDistIndex = None
+        maxDist = -1e7
+        maxDistCoord = None
+        maxDistIndex = 0
 
-            for index in range(len(resultsDir1[0][0])):
-                coordX = resultsDir2[0][0][index]
-                coordY = resultsDir2[0][1][index]
-                xDist = abs(x - coordX)
-                yDist = abs(y - coordY)
-                dist = xDist + yDist
-                if dist > maxDist:
-                    maxDist = dist
-                    maxDistCoord = (coordX,coordY)
-                    maxDistIndex = index
+        for index in range(len(resultsDir2[0][0])):
+            coordX = resultsDir2[0][0][index]
+            coordY = resultsDir2[0][1][index]
+            xDist = abs(x - coordX)
+            yDist = abs(y - coordY)
+            dist = xDist + yDist
+            if dist > maxDist:
+                maxDist = dist
+                maxDistCoord = (coordX,coordY)
+                maxDistIndex = index
 
-            for dirIndex in range(len(resultsDir1[0][0])):
-                if resultsDir1[0][0][dirIndex] == maxDistCoord[0] and resultsDir1[0][1][dirIndex] == maxDistCoord[1]:
-                    dir1Index = dirIndex
+        dir2Index = maxDistIndex
 
-            half1X = resultsDir2[0][0][maxDistIndex:-1]
-            half1Y = resultsDir2[0][1][maxDistIndex:-1]
-            half2X = resultsDir1[0][0][dir1Index:-1]
-            half2Y = resultsDir1[0][1][dir1Index:-1]
+        dir1Index = 0
+        for dirIndex in range(len(resultsDir1[0][0])):
+            if resultsDir1[0][0][dirIndex] == maxDistCoord[0] and resultsDir1[0][1][dirIndex] == maxDistCoord[1]:
+                dir1Index = dirIndex
+                break
 
-            results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y)
+        if dir1Index == 0:
+            print('\nCannot find path.')
 
-            endTime = time.time()
-            print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
+        half1X = resultsDir2[0][0][dir2Index:-1]
+        half1Y = resultsDir2[0][1][dir2Index:-1]
+        half2X = resultsDir1[0][0][dir1Index:-1]
+        half2Y = resultsDir1[0][1][dir1Index:-1]
 
-            showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
-        except:
-            print('\nError finding path.')
-            print('Displaying both directions.')
+        results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y)
 
-            endTime = time.time()
-            print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
+        endTime = time.time()
+        print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
 
-            showPath(resultsDir1[0][0], resultsDir1[0][1], xCoords, yCoords, x+j, y+i, len(resultsDir1[0][0]))
-            showPath(resultsDir2[0][0], resultsDir2[0][1], xCoords, yCoords, x, y, len(resultsDir2[0][0]))
-
-    # if not concurrentProcesses:
+        showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
     
 
 def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
