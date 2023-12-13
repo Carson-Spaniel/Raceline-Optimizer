@@ -34,11 +34,11 @@ def processImageSection(args):
 
     return xCoords, yCoords, i
 
-def plotNodes(xCoords, yCoords):
+def plotNodes(xCoords, yCoords, trackNodes):
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
-    plt.title('Track Map with Nodes')
+    plt.title(f'Number of nodes in track: {trackNodes}')
     plt.legend()
     plt.show()
 
@@ -226,8 +226,6 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
     concurrentProcesses = False
 
-    startTime = time.time()
-
     if concurrentProcesses:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes, concurrentProcesses) for _ in range(math.floor(os.cpu_count()*.6))}
@@ -238,8 +236,10 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
             showPath(results[0][0], results[0][1], xCoords, yCoords, x+j, y+i, len(results[0][0]))
     else:
-        resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses)
-        resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, numNodes, concurrentProcesses)
+        startTime = time.time()
+
+        resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses) # Goes the wanted direction
+        resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, numNodes, concurrentProcesses) # Goes the opposite direction
 
         maxDist = -1e7
         maxDistCoord = None
@@ -272,7 +272,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
         half2X = resultsDir1[0][0][dir1Index:-1]
         half2Y = resultsDir1[0][1][dir1Index:-1]
 
-        results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y)
+        results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y) # Stitches the better parts of each together
 
         endTime = time.time()
         print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
@@ -366,12 +366,12 @@ def main():
 
         endTime = time.time()
 
-        print(f'\nNumber of track nodes: {numNodes}') # Number of sections the track was split into
+        # print(f'\nNumber of track nodes: {numNodes}') # Number of sections the track was split into
 
         print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
 
         print('\nFind the starting X and Y coordinates as well as the starting direction.')
-        plotNodes(xCoords, yCoords)
+        plotNodes(xCoords, yCoords, numNodes)
 
         directions = {
             1:['N','0100'],
