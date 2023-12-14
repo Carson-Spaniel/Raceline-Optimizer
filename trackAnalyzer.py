@@ -388,11 +388,10 @@ def main():
             try:
                 # TODO implement ways to not have to restart
                 xCoord = int(input('\nEnter starting X coordinate: '))
-                if xCoord <= width:
+                if xCoord in xCoords:
                     yCoord = int(input('Enter starting Y coordinate: '))
-                    if yCoord <= height:
+                    if yCoord in yCoords:
                         print('\nRelative cardinal direction of the track:')
-                        # TODO add int error checking
                         for key in directions:
                             print(f'{key}. {directions[key][0]}')
                         try:
