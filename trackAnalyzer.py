@@ -234,6 +234,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
         maxDistCoord = None
         maxDistIndex = 0
 
+        # Get the max distance away 
         for index in range(len(resultsDir2[0])):
             coordX = resultsDir2[0][index]
             coordY = resultsDir2[1][index]
