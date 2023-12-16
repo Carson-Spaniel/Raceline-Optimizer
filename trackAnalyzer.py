@@ -248,6 +248,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
         dir2Index = maxDistIndex
 
+        # Check distance for the other direction
         dir1Index = 0
         for dirIndex in range(len(resultsDir1[0])):
             if resultsDir1[0][dirIndex] == maxDistCoord[0] and resultsDir1[1][dirIndex] == maxDistCoord[1]:
