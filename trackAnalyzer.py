@@ -261,6 +261,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
             endTime = time.time()
             print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
         else:
+            # Get the best parts of each direction
             half1X = resultsDir2[0][dir2Index:-1]
             half1Y = resultsDir2[1][dir2Index:-1]
             half2X = resultsDir1[0][dir1Index:-1]
