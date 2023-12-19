@@ -9,6 +9,17 @@ import concurrent.futures
 import math
 
 def is_black(pixel, threshold=100):
+    """
+    Determines whether a given pixel is considered black based on its luminance.
+
+    Parameters:
+    - pixel (int or tuple): Pixel value as a single intensity value or a tuple (R, G, B).
+    - threshold (int): Luminance threshold to classify a pixel as black. Defaults to 100.
+
+    Returns:
+    - bool: True if the pixel is black, False otherwise.
+    """
+
     # Calculate luminance as a measure of intensity (brightness)
     if type(pixel) == int:
         luminance = 0
@@ -18,6 +29,19 @@ def is_black(pixel, threshold=100):
     return luminance <= threshold
 
 def processImageSection(args):
+    """
+    Processes a section of an image to extract track nodes.
+
+    Parameters:
+    - args (tuple): A tuple containing image_section, size, and offset.
+    - image_section: Image section to process.
+    - size: Size of the image section (width, height).
+    - offset: Offset coordinates.
+
+    Returns:
+    - tuple: A tuple containing lists of X and Y coordinates of track nodes and the total count of nodes.
+    """
+
     image_section, size, offset = args
     width, height = size
 
@@ -35,6 +59,18 @@ def processImageSection(args):
     return xCoords, yCoords, i
 
 def plotNodes(xCoords, yCoords, trackNodes):
+    """
+    Plots the track nodes on a graph.
+
+    Parameters:
+    - xCoords (list): List of X-coordinates of track nodes.
+    - yCoords (list): List of Y-coordinates of track nodes.
+    - trackNodes (int): Number of track nodes.
+
+    Returns:
+    - None
+    """
+
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
@@ -43,6 +79,16 @@ def plotNodes(xCoords, yCoords, trackNodes):
     plt.show()
 
 def printTracks(tracksFolder):
+    """
+    Prints the available tracks in a given folder and prompts the user to choose one.
+
+    Parameters:
+    - tracksFolder (str): Path to the folder containing track files.
+
+    Returns:
+    - str: Chosen track filename.
+    """
+    
     # Get the absolute path based on the current working directory
     absoluteTracksFolder = os.path.abspath(tracksFolder)
 
@@ -98,7 +144,24 @@ getOpposite = {
 }
 
 def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited):
-    # Main function to search the path
+    """
+    This function determines the next valid move based on a set of possible moves, current position, and visited nodes.
+
+    Parameters:
+    - moves (list): List of possible moves represented as strings.
+    - currPosX (int): Current X-coordinate.
+    - currPosY (int): Current Y-coordinate.
+    - xCoords (list): List of valid X-coordinates for the track.
+    - yCoords (list): List of valid Y-coordinates for the track.
+    - startX (int): Starting X-coordinate.
+    - startY (int): Starting Y-coordinate.
+    - visited (list): List of visited coordinates.
+
+    Returns:
+    - tuple: A tuple containing the next coordinates to move to and the corresponding move string.
+      Example: ((nextX, nextY), nextMoveStr)
+    """
+        
     nextMove = []
     nextDist = 1e7 # Infinity
     nextMoveStr = moves[0]
@@ -139,7 +202,24 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     except IndexError:
         return ((None, None), nextMoveStr)
 
-def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes, concurrentProcesses):
+def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, concurrentProcesses):
+    """
+    This function explores paths from a given starting point in a specified direction and finds the optimal path.
+
+    Parameters:
+    - startX (int): Starting X-coordinate.
+    - startY (int): Starting Y-coordinate.
+    - direction (str): Initial direction of movement.
+    - startDirX (int): Initial X-coordinate for direction.
+    - startDirY (int): Initial Y-coordinate for direction.
+    - xCoords (list): List of valid X-coordinates for the track.
+    - yCoords (list): List of valid Y-coordinates for the track.
+    - concurrentProcesses (bool): Flag indicating whether to use concurrent processes.
+
+    Returns:
+    - tuple or None: A tuple containing two lists of X and Y coordinates representing the optimal path, or None if no path is found.
+    """
+
     nodeCount = 1e7
     path = None
     pathCounter = 1
@@ -201,7 +281,21 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
 
     return path
 
-def start(x,y,direction, xCoords, yCoords, numNodes):
+def start(x,y,direction, xCoords, yCoords):
+    """
+    This function initiates the pathfinding process, exploring paths in two directions and combining the results for an optimal path.
+
+    Parameters:
+    - x (int): X-coordinate of the starting point.
+    - y (int): Y-coordinate of the starting point.
+    - direction (str): Initial direction of movement.
+    - xCoords (list): List of valid X-coordinates for the track.
+    - yCoords (list): List of valid Y-coordinates for the track.
+
+    Returns:
+    - None
+    """
+
     iNeg = int(direction[0])
     jNeg = int(direction[2])
     i = int(direction[1])
@@ -215,7 +309,7 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
     if concurrentProcesses:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes, concurrentProcesses) for _ in range(math.floor(os.cpu_count()*.6))}
+            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, concurrentProcesses) for _ in range(math.floor(os.cpu_count()*.6))}
             done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
 
             # Get the result from the first completed task
@@ -226,10 +320,10 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
         startTime = time.time()
 
         print('\nSearching direction 1...')
-        resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes, concurrentProcesses) # Goes the wanted direction
+        resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, concurrentProcesses) # Goes the wanted direction
 
         print('Searching direction 2...')
-        resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, numNodes, concurrentProcesses) # Goes the opposite direction
+        resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, concurrentProcesses) # Goes the opposite direction
 
         maxDist = -1e7
         maxDistCoord = None
@@ -277,6 +371,22 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
     
 
 def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
+    """
+    This function displays the optimal path on a plot, along with track nodes and start/finish nodes.
+
+    Parameters:
+    - xPath (list): List of X-coordinates representing the optimal path.
+    - yPath (list): List of Y-coordinates representing the optimal path.
+    - xCoords (list): List of valid X-coordinates for the track.
+    - yCoords (list): List of valid Y-coordinates for the track.
+    - startX (int): Starting X-coordinate.
+    - startY (int): Starting Y-coordinate.
+    - numNodes (int): Number of nodes in the path.
+
+    Returns:
+    - None
+    """
+    
     # Point to divide track into
     splitPoint = 1
 
@@ -303,6 +413,13 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     plt.show()
 
 def main():
+    """
+    The main function that orchestrates the process of selecting, processing, and analyzing tracks.
+
+    Returns:
+    - None
+    """
+    
     tracksFolder = 'tracks'
     while True:
         image = printTracks(tracksFolder)
@@ -403,7 +520,7 @@ def main():
             except Exception as e:
                 print('Invalid coordinate.')
 
-        start(xCoord,yCoord,choice[1], xCoords, yCoords, total_nodes)
+        start(xCoord,yCoord,choice[1], xCoords, yCoords)
 
         more = False
         while True:
