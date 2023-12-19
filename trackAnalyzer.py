@@ -98,6 +98,7 @@ getOpposite = {
 }
 
 def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited):
+    # Main function to search the path
     nextMove = []
     nextDist = 1e7 # Infinity
     nextMoveStr = moves[0]
