@@ -134,13 +134,15 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     except IndexError:
         return None, None
 
-def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numberToBeatLow):
+def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numberToBeatHigh, numberToBeatLow):
+    print(f'\nSearching paths with at most {numberToBeatHigh} nodes.\n')
     nodeCount = 1e7
-    print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
     path = None
     pathCounter = 1
     nodes = 0
     pathsChecked = 0
+    fullRangeX = max(xCoords) - min(xCoords)
+    fullRangeY = max(yCoords) - min(yCoords)
     while path == None or pathCounter < 1:
         currPosX = startDirX
         currPosY = startDirY
@@ -170,31 +172,32 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     movesPath.append(moves)
                     visited.append((currPosX, currPosY))
                     nodes += 1
+
+                xRange = (max(currPathX) - min(currPathX)) / fullRangeX
+                yRange = (max(currPathY) - min(currPathY)) / fullRangeY
+
+                if (currPosX,currPosY) == (startX, startY) and xRange < 0.9 and yRange < 0.9:
+                    # Reset the path if range conditions are not met
+                    currPosX = startDirX
+                    currPosY = startDirY
+                    moves = getMove[direction]
+                    currPathX = [currPosX]
+                    currPathY = [currPosY]
+                    movesPath = []
+                    visited = [(currPosX, currPosY)]
             
-            
-            if nodes <= nodeCount and nodes > numberToBeatLow and moves[1] == direction:
-                print('Path found.')
-                print(f'{nodes} Nodes.\n')
-                # print('Same distance path found')
-                nodeCount = nodes
-                path = (currPathX, currPathY)
-                pathCounter += 1
-                pathsChecked += 1
-                # plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-                # plt.plot(currPathX, currPathY, '-', label='Connection Line', color='b')
-                # plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
-                # plt.plot(startX, startY, 'd', label='Finish Node', color='r')
-                # plt.xlabel('X-axis')
-                # plt.ylabel('Y-axis')
-                # plt.title(f'Number of nodes in path: {nodeCount}', loc='center')
-                # plt.legend()
-                # plt.show()
+            if nodes <= nodeCount and nodes < numberToBeatHigh and nodes > numberToBeatLow and moves[1] == direction:
+                    print('Path found.')
+                    print(f'{nodes} Nodes.')
+                    nodeCount = nodes
+                    path = (currPathX, currPathY)
+                    pathCounter += 1
+                    pathsChecked += 1
         except Exception as e:
-            # print("Path not found.")
             pathsChecked += 1
-            # if nodes > numberToBeatLow and nodes < numberToBeatHigh:
-            #     pathCounter += 1
-    print(f'Checked {pathsChecked} paths.')
+            if pathsChecked>2000:
+                return None,1e7
+    print(f'Checked {pathsChecked} paths.\n')
 
     return path, nodeCount
 
@@ -216,12 +219,13 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
 
 
 #     with concurrent.futures.ProcessPoolExecutor() as executor:
-#         futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1]) for _ in range(math.floor(os.cpu_count()*.6))}
-#         done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+#         futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1], numNodes*.30) for _ in range(math.floor(os.cpu_count()*.6))}
 
 #         for future in concurrent.futures.as_completed(futures):
 #             result = future.result()
 #             resultsList.append(result)
+
+#     print(len(resultsList))
 
 #     results = min(resultsList, key=lambda x: x[1]) 
 
@@ -251,40 +255,67 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
     if jNeg:
         j *= -1
 
-    startTime = time.time()
-
     resultsList = []
-    results = [0, numNodes*.20]
+    results = [0, 1e7]
+    improvementData = []
+    numNodeData = []
+    iteration = 0
 
-    threshold = 0.10  # Adjust this threshold as needed
+    threshold = 0.001
+
+    startTime = time.time()
 
     while True:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1]) for _ in range(math.floor(os.cpu_count() * 0.6))}
-            done, _ = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1], numNodes*.30) for _ in range(math.floor(os.cpu_count()*.5))}
 
-            for future in done:
+            for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 resultsList.append(result)
+                if result[1] < 1e7:
+                    numNodeData.append((iteration, result[1]))
 
         # Calculate new minimum result
         new_results = min(resultsList, key=lambda x: x[1])
+        print(f'\nMinimum number of nodes in iteration {iteration}: {new_results[1]}')
 
         # Calculate relative improvement
         improvement = abs(results[1] - new_results[1]) / results[1]
 
         print(improvement)
 
+        if iteration:
+            improvementData.append((iteration, 1-improvement))
+
         if improvement < threshold:
+            numNodeData.append((iteration, new_results[1]))
             break  # If improvement is below threshold, break the loop
         else:
             results = new_results
-            resultsList = [results]  # Clear resultsList for next iteration
+            iteration +=1
 
     endTime = time.time()
 
     print(f'Wait time was: {round(endTime-startTime, 2)} seconds.')
 
+    # Plot the improvement data
+    iterationsImp, improvement = zip(*improvementData)
+    iterationsNod, nodes = zip(*numNodeData)
+    plt.plot(iterationsNod, nodes, '.', label='Nodes', color='b')
+    plt.xlabel('Iterations')
+    plt.ylabel('Number of nodes')
+    plt.title('Number of Nodes per Iteration', loc='center')
+    plt.legend()
+    plt.show()
+
+    plt.plot(iterationsImp, improvement, '-o', label='Improvement', color='b')
+    plt.xlabel('Iterations')
+    plt.ylabel('Improvement')
+    plt.title('Improvement per Iteration', loc='center')
+    plt.legend()
+    plt.show()
+
+    # Plot the final path
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
     plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
