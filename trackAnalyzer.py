@@ -305,7 +305,7 @@ def start(x,y,direction, xCoords, yCoords):
     if jNeg:
         j *= -1
 
-    concurrentProcesses = True
+    concurrentProcesses = False
 
     if concurrentProcesses:
         with concurrent.futures.ProcessPoolExecutor() as executor:
