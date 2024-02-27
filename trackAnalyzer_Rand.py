@@ -195,7 +195,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     pathsChecked += 1
         except Exception as e:
             pathsChecked += 1
-            if pathsChecked>2000:
+            if pathsChecked>4000:
                 return None,1e7
     print(f'Checked {pathsChecked} paths.\n')
 
@@ -256,7 +256,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         j *= -1
 
     resultsList = []
-    results = [0, 1e7]
+    results = [0, numNodes*.5]
     improvementData = []
     numNodeData = []
     iteration = 0
@@ -284,8 +284,8 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
 
         print(improvement)
 
-        if iteration:
-            improvementData.append((iteration, 1-improvement))
+        # if iteration:
+        improvementData.append((iteration, 1-improvement))
 
         if improvement < threshold:
             numNodeData.append((iteration, new_results[1]))
