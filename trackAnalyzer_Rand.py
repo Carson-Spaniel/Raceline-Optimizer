@@ -134,10 +134,8 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     except IndexError:
         return None, None
 
-def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numNodes):
+def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numberToBeatLow):
     nodeCount = 1e7
-    numberToBeatLow = round(numNodes * .27,0)
-    numberToBeatHigh = round(numNodes * .4,0)
     print(f'\nSearching paths with at least {numberToBeatLow} nodes.\n')
     path = None
     pathCounter = 1
@@ -182,15 +180,15 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 path = (currPathX, currPathY)
                 pathCounter += 1
                 pathsChecked += 1
-                plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-                plt.plot(currPathX, currPathY, '-', label='Connection Line', color='b')
-                plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
-                plt.plot(startX, startY, 'd', label='Finish Node', color='r')
-                plt.xlabel('X-axis')
-                plt.ylabel('Y-axis')
-                plt.title(f'Number of nodes in path: {nodeCount}', loc='center')
-                plt.legend()
-                plt.show()
+                # plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+                # plt.plot(currPathX, currPathY, '-', label='Connection Line', color='b')
+                # plt.plot(startX+(startDirX-startX), startY+(startDirY-startY), 'o', label='Start Node', color='g')
+                # plt.plot(startX, startY, 'd', label='Finish Node', color='r')
+                # plt.xlabel('X-axis')
+                # plt.ylabel('Y-axis')
+                # plt.title(f'Number of nodes in path: {nodeCount}', loc='center')
+                # plt.legend()
+                # plt.show()
         except Exception as e:
             # print("Path not found.")
             pathsChecked += 1
@@ -200,7 +198,50 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
 
     return path, nodeCount
 
-def start(x,y,direction, xCoords, yCoords, numNodes):
+# def start(x,y,direction, xCoords, yCoords, numNodes):
+#     iNeg = int(direction[0])
+#     jNeg = int(direction[2])
+#     i = int(direction[1])
+#     j = int(direction[3])
+#     if iNeg:
+#         i *= -1
+#     if jNeg:
+#         j *= -1
+
+#     startTime = time.time()
+
+#     resultsList = []
+#     results = [0,1e7]
+
+
+
+#     with concurrent.futures.ProcessPoolExecutor() as executor:
+#         futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1]) for _ in range(math.floor(os.cpu_count()*.6))}
+#         done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+
+#         for future in concurrent.futures.as_completed(futures):
+#             result = future.result()
+#             resultsList.append(result)
+
+#     results = min(resultsList, key=lambda x: x[1]) 
+
+#     # results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
+#     endTime = time.time()
+
+#     print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
+
+
+#     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+#     plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
+#     plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
+#     plt.plot(x, y, 'd', label='Finish Node', color='r')
+#     plt.xlabel('X-axis')
+#     plt.ylabel('Y-axis')
+#     plt.title(f'Number of nodes in path: {results[1]}', loc='center')
+#     plt.legend()
+#     plt.show()
+
+def start(x, y, direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
     jNeg = int(direction[2])
     i = int(direction[1])
@@ -212,21 +253,37 @@ def start(x,y,direction, xCoords, yCoords, numNodes):
 
     startTime = time.time()
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, numNodes) for _ in range(math.floor(os.cpu_count()*.6))}
-        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+    resultsList = []
+    results = [0, numNodes*.20]
 
-        # Get the result from the first completed task
-        results = next(iter(done)).result()
+    threshold = 0.10  # Adjust this threshold as needed
 
-        # Cancel all tasks that are not done yet
-        for future in not_done:
-            future.cancel()
+    while True:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1]) for _ in range(math.floor(os.cpu_count() * 0.6))}
+            done, _ = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
 
-    # results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
+            for future in done:
+                result = future.result()
+                resultsList.append(result)
+
+        # Calculate new minimum result
+        new_results = min(resultsList, key=lambda x: x[1])
+
+        # Calculate relative improvement
+        improvement = abs(results[1] - new_results[1]) / results[1]
+
+        print(improvement)
+
+        if improvement < threshold:
+            break  # If improvement is below threshold, break the loop
+        else:
+            results = new_results
+            resultsList = [results]  # Clear resultsList for next iteration
+
     endTime = time.time()
 
-    print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
+    print(f'Wait time was: {round(endTime-startTime, 2)} seconds.')
 
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
