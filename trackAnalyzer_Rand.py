@@ -135,7 +135,6 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
         return None, None
 
 def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, numberToBeatHigh, numberToBeatLow):
-    print(f'\nSearching paths with at most {numberToBeatHigh} nodes.\n')
     nodeCount = 1e7
     path = None
     pathCounter = 1
@@ -195,7 +194,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     pathsChecked += 1
         except Exception as e:
             pathsChecked += 1
-            if pathsChecked>4000:
+            if pathsChecked>100:
                 return None,1e7
     print(f'Checked {pathsChecked} paths.\n')
 
@@ -259,15 +258,20 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
     results = [0, numNodes*.5]
     improvementData = []
     numNodeData = []
-    iteration = 0
+    iteration = 1
+    numProcesses = round(math.floor(os.cpu_count()*.5),0)
+    path = True
 
     threshold = 0.001
+
+    print(f'\nSplitting in to {numProcesses} processes')
 
     startTime = time.time()
 
     while True:
+        print(f'\nSearching paths with at most {results[1]} nodes.\n')
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1], numNodes*.30) for _ in range(math.floor(os.cpu_count()*.5))}
+            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1], 0) for _ in range(numProcesses)}
 
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
@@ -277,12 +281,18 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
 
         # Calculate new minimum result
         new_results = min(resultsList, key=lambda x: x[1])
+
+        if new_results[1] == 1e7 and len(resultsList) == numProcesses:
+            print('No path found.\n')
+            path = False
+            break
+        
         print(f'\nMinimum number of nodes in iteration {iteration}: {new_results[1]}')
 
         # Calculate relative improvement
         improvement = abs(results[1] - new_results[1]) / results[1]
 
-        print(improvement)
+        print(f'Improved {round(improvement*100,4)}%')
 
         # if iteration:
         improvementData.append((iteration, 1-improvement))
@@ -298,33 +308,34 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
 
     print(f'Wait time was: {round(endTime-startTime, 2)} seconds.')
 
-    # Plot the improvement data
-    iterationsImp, improvement = zip(*improvementData)
-    iterationsNod, nodes = zip(*numNodeData)
-    plt.plot(iterationsNod, nodes, '.', label='Nodes', color='b')
-    plt.xlabel('Iterations')
-    plt.ylabel('Number of nodes')
-    plt.title('Number of Nodes per Iteration', loc='center')
-    plt.legend()
-    plt.show()
+    if path:
+        # Plot the improvement data
+        iterationsImp, improvement = zip(*improvementData)
+        iterationsNod, nodes = zip(*numNodeData)
+        plt.plot(iterationsNod, nodes, '.', label='Nodes', color='b')
+        plt.xlabel('Iterations')
+        plt.ylabel('Number of nodes')
+        plt.title('Number of Nodes per Iteration', loc='center')
+        plt.legend()
+        plt.show()
 
-    plt.plot(iterationsImp, improvement, '-o', label='Improvement', color='b')
-    plt.xlabel('Iterations')
-    plt.ylabel('Improvement')
-    plt.title('Improvement per Iteration', loc='center')
-    plt.legend()
-    plt.show()
+        plt.plot(iterationsImp, improvement, '-o', label='Improvement', color='b')
+        plt.xlabel('Iterations')
+        plt.ylabel('Improvement')
+        plt.title('Improvement per Iteration', loc='center')
+        plt.legend()
+        plt.show()
 
-    # Plot the final path
-    plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-    plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
-    plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
-    plt.plot(x, y, 'd', label='Finish Node', color='r')
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title(f'Number of nodes in path: {results[1]}', loc='center')
-    plt.legend()
-    plt.show()
+        # Plot the final path
+        plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+        plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
+        plt.plot(x+j, y+i, 'D', label='Start Node', color='g')
+        plt.plot(x, y, 'D', label='Finish Node', color='r')
+        plt.xlabel('X-axis')
+        plt.ylabel('Y-axis')
+        plt.title(f'Number of nodes in path: {results[1]}', loc='center')
+        plt.legend()
+        plt.show()
 
 
 def timeEstimate(x):
