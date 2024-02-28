@@ -195,39 +195,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 return None,1e7
     print(f'Checked {pathsChecked} paths.\n')
 
-    # path,nodeCount = cleanPath(path, nodeCount)
-
     return path, nodeCount
-
-def cleanPath(path, nodeCount):
-    while True:
-        xPath = path[0]
-        yPath = path[1]
-
-        for index in range(len(xPath)):
-            currX = xPath[index]
-            currY = yPath[index]
-
-            neighbors = [
-                (currX - 1, currY - 1),
-                (currX, currY - 1),
-                (currX + 1, currY - 1),
-                (currX - 1, currY),
-                (currX + 1, currY),
-                (currX - 1, currY + 1),
-                (currX, currY + 1),
-                (currX + 1, currY + 1)
-            ]
-            if index != len(path[0])-2:
-                nextNextPosX = xPath[index+2]
-                nextNextPosY = yPath[index+2]
-                nextNextPos = (nextNextPosX, nextNextPosY)
-                if nextNextPos in neighbors:
-                    path[0].pop(nextNextPosX)
-                    path[1].pop(nextNextPosY)
-                    nodeCount-=1
-                    break
-        return path, nodeCount
 
 def start(x, y, direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
