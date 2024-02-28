@@ -291,7 +291,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         plt.title(f'Number of nodes in path: {results[1]}', loc='center')
 
         metadata = dict(title=f'Number of nodes in path: {results[1]}')
-        writer = PillowWriter(fps=10, metadata=metadata)
+        writer = PillowWriter(fps=20, metadata=metadata)
 
         xData = []
         yData = []
@@ -307,7 +307,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
             for _ in range(20):  # Add 20 duplicate frames (2 seconds pause)
                 writer.grab_frame()
 
-        plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
+        plt.plot(results[0][0], results[0][1], '-', label='Car Path', color='b')
         plt.legend()
         plt.show()
 

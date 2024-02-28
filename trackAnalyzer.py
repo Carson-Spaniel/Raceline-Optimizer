@@ -1,5 +1,6 @@
 from PIL import Image
 import matplotlib.pyplot as plt
+from matplotlib.animation import PillowWriter
 # from scipy.interpolate import make_interp_spline, BSpline
 import numpy as np
 import os
@@ -401,14 +402,33 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     # Connect the marked points with lines
     plt.plot(markedX, markedY, '-', color='b')
 
-    # Plotting with markers
+    fig = plt.figure()
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-    plt.plot(markedX, markedY, '-', label='Control Points', color='b')
+    l, = plt.plot([], [], '-', color='b')
     plt.plot(markedX[0], markedY[0], 'D', label='Start Node', color='g')
     plt.plot(startX, startY, 'D', label='Finish Node', color='r')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.title(f'Number of nodes in path: {numNodes}', loc='center')
+
+    metadata = dict(title=f'Number of nodes in path: {numNodes}')
+    writer = PillowWriter(fps=20, metadata=metadata)
+
+    xData = []
+    yData = []
+
+    with writer.saving(fig, "TrackVisualization.gif", 100):
+        for i in range(len(markedX)):
+            xData.append(markedX[i])
+            yData.append(markedY[i])
+
+            l.set_data(xData, yData)
+
+            writer.grab_frame()
+        for _ in range(20):  # Add 20 duplicate frames (2 seconds pause)
+            writer.grab_frame()
+
+    plt.plot(markedX, markedY, '-', label='Car Path', color='b')
     plt.legend()
     plt.show()
 
