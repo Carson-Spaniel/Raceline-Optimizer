@@ -251,7 +251,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         # if iteration:
         improvementData.append((iteration, round(improvement*100,4)))
 
-        if iteration == 10: #improvement < threshold:
+        if iteration == 20: #improvement < threshold:
             numNodeData.append((iteration, new_results[1]))
             break
         else:
@@ -282,12 +282,12 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         # Plot the final path
         fig = plt.figure()
         plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
+        l, = plt.plot([], [], '-', color='b')
         plt.plot(x+j, y+i, 'D', label='Start Node', color='g')
         plt.plot(x, y, 'D', label='Finish Node', color='r')
         plt.xlabel('X-axis')
         plt.ylabel('Y-axis')
         plt.title(f'Number of nodes in path: {results[1]}', loc='center')
-        l, = plt.plot([], [], '-', color='b')
 
         metadata = dict(title=f'Number of nodes in path: {results[1]}')
         writer = PillowWriter(fps=10, metadata=metadata)
