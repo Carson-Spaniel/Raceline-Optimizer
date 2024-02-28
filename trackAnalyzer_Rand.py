@@ -159,7 +159,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     currPosX = currPathX.pop()
                     currPosY = currPathY.pop()
                     moves = movesPath.pop()
-                    visited.pop()
+                    # visited.pop()
                     i += 1
                     nodes -= 1
                 else:
@@ -191,11 +191,43 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     pathsChecked += 1
         except Exception as e:
             pathsChecked += 1
-            if pathsChecked>1000:
+            if pathsChecked>500:
                 return None,1e7
     print(f'Checked {pathsChecked} paths.\n')
 
+    # path,nodeCount = cleanPath(path, nodeCount)
+
     return path, nodeCount
+
+def cleanPath(path, nodeCount):
+    while True:
+        xPath = path[0]
+        yPath = path[1]
+
+        for index in range(len(xPath)):
+            currX = xPath[index]
+            currY = yPath[index]
+
+            neighbors = [
+                (currX - 1, currY - 1),
+                (currX, currY - 1),
+                (currX + 1, currY - 1),
+                (currX - 1, currY),
+                (currX + 1, currY),
+                (currX - 1, currY + 1),
+                (currX, currY + 1),
+                (currX + 1, currY + 1)
+            ]
+            if index != len(path[0])-2:
+                nextNextPosX = xPath[index+2]
+                nextNextPosY = yPath[index+2]
+                nextNextPos = (nextNextPosX, nextNextPosY)
+                if nextNextPos in neighbors:
+                    path[0].pop(nextNextPosX)
+                    path[1].pop(nextNextPosY)
+                    nodeCount-=1
+                    break
+        return path, nodeCount
 
 def start(x, y, direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
@@ -251,7 +283,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         # if iteration:
         improvementData.append((iteration, round(improvement*100,4)))
 
-        if iteration == 20: #improvement < threshold:
+        if iteration == 10: #improvement < threshold:
             numNodeData.append((iteration, new_results[1]))
             break
         else:
@@ -274,6 +306,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         plt.show()
 
         plt.bar(iterationsImp, improvement, color='b', alpha=0.7)
+        plt.ylim(0,100)
         plt.xlabel('Iterations')
         plt.ylabel('Improvement Percentage')
         plt.title('Improvement per Iteration')
