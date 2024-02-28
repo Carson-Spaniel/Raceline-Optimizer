@@ -1,6 +1,6 @@
 from PIL import Image
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter
 import os
 import time
 from multiprocessing import Pool, freeze_support
@@ -98,7 +98,6 @@ getMove = {
 def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visited):
     nextMove = []
     nextDist = 1e7 # Infinity
-    index = 0
     for move in moves:
         iNeg = int(move[0])
         jNeg = int(move[2])
@@ -119,8 +118,6 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
                 xDist = abs(startX - nextX)
                 yDist = abs(startY - nextY)
                 dist = xDist + yDist
-                # if index == 1:
-                #     dist - 1
                 if dist < nextDist:
                     nextDist = dist
                     nextMove.append(coords)
@@ -194,55 +191,11 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     pathsChecked += 1
         except Exception as e:
             pathsChecked += 1
-            if pathsChecked>100:
+            if pathsChecked>1000:
                 return None,1e7
     print(f'Checked {pathsChecked} paths.\n')
 
     return path, nodeCount
-
-# def start(x,y,direction, xCoords, yCoords, numNodes):
-#     iNeg = int(direction[0])
-#     jNeg = int(direction[2])
-#     i = int(direction[1])
-#     j = int(direction[3])
-#     if iNeg:
-#         i *= -1
-#     if jNeg:
-#         j *= -1
-
-#     startTime = time.time()
-
-#     resultsList = []
-#     results = [0,1e7]
-
-
-
-#     with concurrent.futures.ProcessPoolExecutor() as executor:
-#         futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1], numNodes*.30) for _ in range(math.floor(os.cpu_count()*.6))}
-
-#         for future in concurrent.futures.as_completed(futures):
-#             result = future.result()
-#             resultsList.append(result)
-
-#     print(len(resultsList))
-
-#     results = min(resultsList, key=lambda x: x[1]) 
-
-#     # results = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, numNodes)
-#     endTime = time.time()
-
-#     print(f'Wait time was: {round(endTime-startTime,2)} seconds.')
-
-
-#     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-#     plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
-#     plt.plot(x+j, y+i, 'o', label='Start Node', color='g')
-#     plt.plot(x, y, 'd', label='Finish Node', color='r')
-#     plt.xlabel('X-axis')
-#     plt.ylabel('Y-axis')
-#     plt.title(f'Number of nodes in path: {results[1]}', loc='center')
-#     plt.legend()
-#     plt.show()
 
 def start(x, y, direction, xCoords, yCoords, numNodes):
     iNeg = int(direction[0])
@@ -269,6 +222,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
     startTime = time.time()
 
     while True:
+        print(f'\nStarting iteration {iteration}')
         print(f'\nSearching paths with at most {results[1]} nodes.\n')
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, results[1], 0) for _ in range(numProcesses)}
@@ -287,7 +241,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
             path = False
             break
         
-        print(f'\nMinimum number of nodes in iteration {iteration}: {new_results[1]}')
+        print(f'Minimum number of nodes in iteration {iteration}: {new_results[1]}')
 
         # Calculate relative improvement
         improvement = abs(results[1] - new_results[1]) / results[1]
@@ -295,11 +249,11 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         print(f'Improved {round(improvement*100,4)}%')
 
         # if iteration:
-        improvementData.append((iteration, 1-improvement))
+        improvementData.append((iteration, round(improvement*100,4)))
 
-        if improvement < threshold:
+        if iteration == 10: #improvement < threshold:
             numNodeData.append((iteration, new_results[1]))
-            break  # If improvement is below threshold, break the loop
+            break
         else:
             results = new_results
             iteration +=1
@@ -319,24 +273,42 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         plt.legend()
         plt.show()
 
-        plt.plot(iterationsImp, improvement, '-o', label='Improvement', color='b')
+        plt.bar(iterationsImp, improvement, color='b', alpha=0.7)
         plt.xlabel('Iterations')
-        plt.ylabel('Improvement')
-        plt.title('Improvement per Iteration', loc='center')
-        plt.legend()
+        plt.ylabel('Improvement Percentage')
+        plt.title('Improvement per Iteration')
         plt.show()
 
         # Plot the final path
+        fig = plt.figure()
         plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
-        plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
         plt.plot(x+j, y+i, 'D', label='Start Node', color='g')
         plt.plot(x, y, 'D', label='Finish Node', color='r')
         plt.xlabel('X-axis')
         plt.ylabel('Y-axis')
         plt.title(f'Number of nodes in path: {results[1]}', loc='center')
+        l, = plt.plot([], [], '-', color='b')
+
+        metadata = dict(title=f'Number of nodes in path: {results[1]}')
+        writer = PillowWriter(fps=10, metadata=metadata)
+
+        xData = []
+        yData = []
+
+        with writer.saving(fig, "TrackVisualization.gif", 100):
+            for i in range(len(results[0][0])):
+                xData.append(results[0][0][i])
+                yData.append(results[0][1][i])
+
+                l.set_data(xData, yData)
+
+                writer.grab_frame()
+            for _ in range(20):  # Add 20 duplicate frames (2 seconds pause)
+                writer.grab_frame()
+
+        plt.plot(results[0][0], results[0][1], '-', label='Connection Line', color='b')
         plt.legend()
         plt.show()
-
 
 def timeEstimate(x):
     return round((x/os.cpu_count()/43), 2)
@@ -363,8 +335,6 @@ def main():
 
         print('\nBuilding Track...')
         # print(f'Estimated time is: {timeEstimate(size)} seconds.')
-
-        # print(f'CPU count: {math.floor(os.cpu_count()*.8)}')
 
         startTime = time.time()
 
