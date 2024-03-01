@@ -220,6 +220,8 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
 
     startTime = time.time()
 
+    # ! Maybe I can make it where the path is recursively passed to the algorithm and it get the start and then 10 indexes into the path and it find the shortest path that way
+
     while True:
         print(f'\nStarting iteration {iteration}')
         print(f'\nSearching paths with at most {results[1]} nodes.\n')
