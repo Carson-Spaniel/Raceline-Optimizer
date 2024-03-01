@@ -214,8 +214,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
     iteration = 1
     numProcesses = round(math.floor(os.cpu_count()*.5),0)
     path = True
-
-    threshold = 0.001
+    stopIteration = 10
 
     print(f'\nSplitting in to {numProcesses} processes')
 
@@ -232,6 +231,9 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
                 resultsList.append(result)
                 if result[1] < 1e7:
                     numNodeData.append((iteration, result[1]))
+                    if iteration > 3:
+                        stopIteration = 10 + iteration
+                        print(f'Iterating until iteration {stopIteration}')
 
         # Calculate new minimum result
         new_results = min(resultsList, key=lambda x: x[1])
@@ -251,7 +253,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
         # if iteration:
         improvementData.append((iteration, round(improvement*100,4)))
 
-        if iteration == 10: #improvement < threshold:
+        if iteration == stopIteration:
             numNodeData.append((iteration, new_results[1]))
             break
         else:
@@ -265,13 +267,13 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
     if path:
         # Plot the improvement data
         iterationsImp, improvement = zip(*improvementData)
-        iterationsNod, nodes = zip(*numNodeData)
-        plt.plot(iterationsNod, nodes, '.', label='Nodes', color='b')
-        plt.xlabel('Iterations')
-        plt.ylabel('Number of nodes')
-        plt.title('Number of Nodes per Iteration', loc='center')
-        plt.legend()
-        plt.show()
+        # iterationsNod, nodes = zip(*numNodeData)
+        # plt.plot(iterationsNod, nodes, '.', label='Nodes', color='b')
+        # plt.xlabel('Iterations')
+        # plt.ylabel('Number of nodes')
+        # plt.title('Number of Nodes per Iteration', loc='center')
+        # plt.legend()
+        # plt.show()
 
         plt.bar(iterationsImp, improvement, color='b', alpha=0.7)
         plt.ylim(0,100)
