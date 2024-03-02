@@ -46,4 +46,4 @@ Future updates to the script will include a more sophisticated visualization met
 
 - **Tracks Folder:** Ensure that the 'tracks' folder contains the track images for processing. Modify the `tracksFolder` variable in the script if your tracks are stored in a different location.
 
-## Total working time of the project: 5 Days
+## Total working time of the project: Work in Progress
