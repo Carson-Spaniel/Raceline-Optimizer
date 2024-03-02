@@ -9,7 +9,7 @@ from multiprocessing import Pool, freeze_support
 import concurrent.futures
 import math
 
-def is_black(pixel, threshold=100):
+def is_black(pixel, threshold=150):
     """
     Determines whether a given pixel is considered black based on its luminance.
 

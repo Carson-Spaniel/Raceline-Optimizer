@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import PillowWriter
 import os
 import time
-from multiprocessing import Pool, freeze_support
+from multiprocessing import Pool, freeze_support, cpu_count
 import concurrent.futures
 import random
 import math
@@ -19,7 +19,7 @@ class BackgroundColors:
     CYAN = '\033[46m'
     WHITE = '\033[47m'
 
-def is_black(pixel, threshold=100):
+def is_black(pixel, threshold=150):
     # Calculate luminance as a measure of intensity (brightness)
     if type(pixel) == int:
         luminance = 0
@@ -183,12 +183,12 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                     visited = [(currPosX, currPosY)]
             
             if nodes <= nodeCount and nodes < numberToBeatHigh and nodes > numberToBeatLow and moves[1] == direction:
-                    print('Path found.')
-                    print(f'{nodes} Nodes.')
-                    nodeCount = nodes
-                    path = (currPathX, currPathY)
-                    pathCounter += 1
-                    pathsChecked += 1
+                print('Path found.')
+                print(f'{nodes} Nodes.')
+                nodeCount = nodes
+                path = (currPathX, currPathY)
+                pathCounter += 1
+                pathsChecked += 1
         except Exception as e:
             pathsChecked += 1
             if pathsChecked>500:
@@ -212,7 +212,7 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
     improvementData = []
     numNodeData = []
     iteration = 1
-    numProcesses = round(math.floor(os.cpu_count()*.5),0)
+    numProcesses = round(math.floor(cpu_count()),0)
     path = True
     stopIteration = 10
 
@@ -233,9 +233,6 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
                 resultsList.append(result)
                 if result[1] < 1e7:
                     numNodeData.append((iteration, result[1]))
-                    if iteration > 3:
-                        stopIteration = 10 + iteration
-                        print(f'Iterating until iteration {stopIteration}')
 
         # Calculate new minimum result
         new_results = min(resultsList, key=lambda x: x[1])
@@ -249,6 +246,10 @@ def start(x, y, direction, xCoords, yCoords, numNodes):
 
         # Calculate relative improvement
         improvement = abs(results[1] - new_results[1]) / results[1]
+
+        if iteration > 3 and improvement > 0:
+            stopIteration = 10 + iteration
+            print(f'Iterating until iteration {stopIteration}')
 
         print(f'Improved {round(improvement*100,4)}%')
 
