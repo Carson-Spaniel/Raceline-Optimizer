@@ -6,8 +6,6 @@ import numpy as np
 import os
 import time
 from multiprocessing import Pool, freeze_support
-import concurrent.futures
-import math
 
 def is_black(pixel, threshold=150):
     """
@@ -352,7 +350,6 @@ def start(x,y,direction, xCoords, yCoords):
         print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
 
         showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
-
 
 def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     """
