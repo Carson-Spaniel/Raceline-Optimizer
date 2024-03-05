@@ -203,7 +203,7 @@ def choosePath(moves, currPosX, currPosY, xCoords, yCoords, startX, startY, visi
     except IndexError:
         return ((None, None), nextMoveStr)
 
-def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords, concurrentProcesses):
+def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords):
     """
     This function explores paths from a given starting point in a specified direction and finds the optimal path.
 
@@ -225,10 +225,7 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
     path = None
     pathCounter = 1
     failed = 0
-    if concurrentProcesses:
-        countNeeded = 1
-    else:
-        countNeeded = 6
+    countNeeded = 6
     while path == None or pathCounter < countNeeded:
         currPosX = startDirX
         currPosY = startDirY
@@ -273,8 +270,6 @@ def findStart(startX, startY, direction, startDirX, startDirY, xCoords, yCoords,
                 nodeCount = nodes
                 path = (currPathX, currPathY)
                 pathCounter += 1
-                if concurrentProcesses:
-                    showPath(currPathX, currPathY, xCoords, yCoords, startDirX, startDirY, nodeCount)
 
         except Exception as e:
             failed += 1
@@ -306,70 +301,58 @@ def start(x,y,direction, xCoords, yCoords):
     if jNeg:
         j *= -1
 
-    concurrentProcesses = False
+    startTime = time.time()
 
-    if concurrentProcesses:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = {executor.submit(findStart, x, y, direction, x+j, y+i, xCoords, yCoords, concurrentProcesses) for _ in range(math.floor(os.cpu_count()*.6))}
-            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+    print('\nSearching direction 1...')
+    resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords) # Goes the wanted direction
 
-            # Get the result from the first completed task
-            results = next(iter(done)).result()
+    print('Searching direction 2...')
+    resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords) # Goes the opposite direction
 
-            showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
+    maxDist = -1e7
+    maxDistCoord = None
+    maxDistIndex = 0
+
+    # Get the max distance away 
+    for index in range(len(resultsDir2[0])):
+        coordX = resultsDir2[0][index]
+        coordY = resultsDir2[1][index]
+        xDist = abs(x - coordX)
+        yDist = abs(y - coordY)
+        dist = xDist + yDist
+        if dist > maxDist:
+            maxDist = dist
+            maxDistCoord = (coordX,coordY)
+            maxDistIndex = index
+
+    dir2Index = maxDistIndex
+
+    # Check distance for the other direction
+    dir1Index = 0
+    for dirIndex in range(len(resultsDir1[0])):
+        if resultsDir1[0][dirIndex] == maxDistCoord[0] and resultsDir1[1][dirIndex] == maxDistCoord[1]:
+            dir1Index = dirIndex
+            break
+
+    if dir1Index == 0:
+        print('\nCannot find path.')
+
+        endTime = time.time()
+        print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
     else:
-        startTime = time.time()
+        # Get the best parts of each direction
+        half1X = resultsDir2[0][dir2Index:-1]
+        half1Y = resultsDir2[1][dir2Index:-1]
+        half2X = resultsDir1[0][dir1Index:-1]
+        half2Y = resultsDir1[1][dir1Index:-1]
 
-        print('\nSearching direction 1...')
-        resultsDir1 = findStart(x,y,direction,x+j,y+i,xCoords,yCoords, concurrentProcesses) # Goes the wanted direction
+        results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y) # Stitches the better parts of each together
 
-        print('Searching direction 2...')
-        resultsDir2 = findStart(x+j,y+i,getOpposite[direction],x,y,xCoords,yCoords, concurrentProcesses) # Goes the opposite direction
+        endTime = time.time()
+        print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
 
-        maxDist = -1e7
-        maxDistCoord = None
-        maxDistIndex = 0
+        showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
 
-        # Get the max distance away 
-        for index in range(len(resultsDir2[0])):
-            coordX = resultsDir2[0][index]
-            coordY = resultsDir2[1][index]
-            xDist = abs(x - coordX)
-            yDist = abs(y - coordY)
-            dist = xDist + yDist
-            if dist > maxDist:
-                maxDist = dist
-                maxDistCoord = (coordX,coordY)
-                maxDistIndex = index
-
-        dir2Index = maxDistIndex
-
-        # Check distance for the other direction
-        dir1Index = 0
-        for dirIndex in range(len(resultsDir1[0])):
-            if resultsDir1[0][dirIndex] == maxDistCoord[0] and resultsDir1[1][dirIndex] == maxDistCoord[1]:
-                dir1Index = dirIndex
-                break
-
-        if dir1Index == 0:
-            print('\nCannot find path.')
-
-            endTime = time.time()
-            print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
-        else:
-            # Get the best parts of each direction
-            half1X = resultsDir2[0][dir2Index:-1]
-            half1Y = resultsDir2[1][dir2Index:-1]
-            half2X = resultsDir1[0][dir1Index:-1]
-            half2Y = resultsDir1[1][dir1Index:-1]
-
-            results = (half1X[::-1] + half2X,half1Y[::-1] + half2Y) # Stitches the better parts of each together
-
-            endTime = time.time()
-            print(f'\nWait time was: {round(endTime-startTime,2)} seconds.')
-
-            showPath(results[0], results[1], xCoords, yCoords, x+j, y+i, len(results[0]))
-    
 
 def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     """
