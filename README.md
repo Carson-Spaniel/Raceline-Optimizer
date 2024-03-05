@@ -2,6 +2,8 @@
 
 This Python script serves as a raceline optimizer, featuring a carefully crafted algorithm to analyze race tracks and determine precise paths. The algorithm intelligently navigates tracks, avoiding dead ends, and enhances accuracy in raceline generation. Leveraging advanced image processing techniques, the script effectively identifies crucial nodes on the track. Additionally, the utilization of multiprocessing optimizes image analysis, ensuring efficient and rapid track optimization.
 
+![](https://github.com/Carson-Spaniel/Raceline-Optimizer/blob/main/Best%20Paths%20Made/Monza_Best.gif)
+
 ## Features
 
 - **Image Processing:** Utilizes the Python Imaging Library (PIL) to process track images efficiently.
