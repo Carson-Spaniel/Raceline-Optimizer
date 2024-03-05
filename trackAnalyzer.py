@@ -370,6 +370,8 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     Returns:
     - None
     """
+
+    print('\nRendering path...')
     
     # Point to divide track into
     splitPoint = 1
@@ -385,7 +387,7 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     # Connect the marked points with lines
     plt.plot(markedX, markedY, '-', color='b')
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(15, 12))
     plt.plot(xCoords, yCoords, '.', label='Track Nodes', color='black')
     l, = plt.plot([], [], '-', color='b')
     plt.plot(markedX[0], markedY[0], 'D', label='Start Node', color='g')
@@ -400,7 +402,7 @@ def showPath(xPath, yPath, xCoords, yCoords, startX, startY, numNodes):
     xData = []
     yData = []
 
-    with writer.saving(fig, "TrackVisualization.gif", 100):
+    with writer.saving(fig, "TrackVisualization.gif", 120):
         for i in range(len(markedX)):
             xData.append(markedX[i])
             yData.append(markedY[i])
